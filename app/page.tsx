@@ -5,6 +5,8 @@ import Turnstile from "react-turnstile";
 import { toast } from "react-toastify";
 import { ToastContainer } from "react-toastify";
 
+const amountOptions = [0.5, 1, 2, 5];
+
 export default function Home() {
   const [walletAddress, setWalletAddress] = useState<string>("");
   const [amount, setAmount] = useState<number | null>(null);
@@ -106,7 +108,7 @@ export default function Home() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-[#360568] to-[#5B2A86]">
       <ToastContainer />
       <div
-        className="bg-[#23F0C7] text-white rounded-lg p-8 m-4 w-4/5 max-w-lg transition-all duration-500 ease-in-out transform hover:translate-y-[-2px] shadow-2xl shadow-inner opacity-100 hover:opacity-90"
+        className="bg-[#23F0C7] text-white rounded-lg p-8 m-4 w-4/5 max-w-lg transition-all duration-500 ease-in-out transform hover:translate-y-[-2px]  drop-shadow-2xl opacity-100 hover:opacity-90"
         style={{
           boxShadow: "20px 20px 60px #1f9fa6, -20px -20px 60px #27ffb2",
         }}
@@ -149,16 +151,30 @@ export default function Home() {
           {errors.amount && (
             <p className="text-red-500 text-xs italic">{errors.amount}</p>
           )}
+          <div className="flex w-40">
+            {amountOptions.map((option) => (
+              <button
+                key={option}
+                onClick={() => setAmount(option)}
+                className="mr-2 bg-[#5B2A86] hover:bg-[#360568] text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline shadow-2xl transition-all duration-500 ease-in-out transform hover:translate-y-[-2px]"
+              >
+                {option}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="mb-6">
           <Turnstile
             sitekey="0x4AAAAAAAHKo-ZE1jhM2pyN"
             onVerify={(token) => setCloudflareCallback(token)}
+            refreshExpired="auto"
+            theme="dark"
+            className="max-w-fit rounded-lg"
           />
         </div>
         <div className="flex items-center justify-between">
           <button
-            className={`bg-[#5B2A86] hover:bg-[#360568] text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline shadow-2xl shadow-inner transition-all duration-500 ease-in-out transform hover:translate-y-[-2px] ${
+            className={`bg-[#5B2A86] hover:bg-[#360568] text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline shadow-2xl transition-all duration-500 ease-in-out transform hover:translate-y-[-2px] ${
               !isFormValid() ? "opacity-60 cursor-not-allowed" : "opacity-100"
             }`}
             type="button"
@@ -172,6 +188,9 @@ export default function Home() {
             Request
           </button>
         </div>
+        <p className="text-xs mt-3 text-[#5B2A86]">
+          Maximum of two requests per hour.
+        </p>
       </div>
     </div>
   );
