@@ -125,7 +125,12 @@ export default async function handler(req, res) {
       skipPreflight: false,
       commitment: "confirmed",
     }
-  );
+  ).catch((err) => {
+    res
+      .status(400)
+      .json({ error: "Faucet is empty, ping @valentinmadrid_ on Twitter" });
+    return;
+  });
 
   console.log("SIGNATURE", signature);
 
