@@ -100,9 +100,10 @@ export default async function handler(req, res) {
   writeDataToFile(ipDataFilePath, ipData);
   writeDataToFile(walletDataFilePath, walletData);
 
-  const payer = loadKeypairFromFile(
-    require("os").homedir() + "/.config/solana/id.json"
-  );
+  const keypair = JSON.parse(process.env.FAUCET_KEYPAIR ?? "");
+  const payer = Keypair.fromSecretKey(Uint8Array.from(keypair));
+
+  console.log(payer.publicKey.toBase58());
 
   const connection = new Connection(
     "https://api.devnet.solana.com",
