@@ -10,8 +10,8 @@ import {
   SystemProgram,
 } from "@solana/web3.js";
 
-const ipDataFilePath = path.join(process.cwd(), "ipData.json");
-const walletDataFilePath = path.join(process.cwd(), "walletData.json");
+const ipDataFilePath = path.join(process.cwd(), "files", "ipData.json");
+const walletDataFilePath = path.join(process.cwd(), "files", "walletData.json");
 const verifyEndpoint =
   "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
