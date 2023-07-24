@@ -15,6 +15,7 @@ export default function Home() {
     amount: "",
   });
   const [cloudflareCallback, setCloudflareCallback] = useState<string>("");
+  const [hasRequested, setHasRequested] = useState<boolean>(false);
 
   const validateWallet = (address: string): boolean => {
     try {
@@ -86,6 +87,7 @@ export default function Home() {
           autoClose: 4000,
           type: "success",
         });
+        setHasRequested(true);
       } else {
         const data = await res.json();
 
@@ -188,9 +190,19 @@ export default function Home() {
             Request
           </button>
         </div>
-        <p className="text-xs mt-3 text-[#5B2A86]">
-          Maximum of two requests per hour.
-        </p>
+        <div>
+          {hasRequested && (
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-[#5B2A86] hover:bg-[#360568] text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline shadow-2xl transition-all duration-500 ease-in-out transform hover:translate-y-[-2px] mt-4"
+            >
+              Reload page
+            </button>
+          )}
+          <p className="text-xs mt-3 text-[#5B2A86]">
+            Maximum of two requests per hour.
+          </p>
+        </div>
       </div>
     </div>
   );
