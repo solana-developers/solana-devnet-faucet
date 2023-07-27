@@ -127,7 +127,7 @@ export default async function handler(
     ipAddressWithoutDots = ip.replace(/\./g, "");
   }
 
-  // await getOrCreateAndVerifyDatabaseEntry(ipAddressWithoutDots);
+  await getOrCreateAndVerifyDatabaseEntry(ipAddressWithoutDots);
 
   await getOrCreateAndVerifyDatabaseEntry(walletAddress);
 
