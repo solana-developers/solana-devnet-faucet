@@ -133,7 +133,7 @@ export default function Home() {
       <Header />
 
       <div className="absolute">
-        <Card className="w-[450px]">
+        <Card className="mx-2 sm:w-full md:w-[450px]">
           <CardHeader>
             <CardTitle>Request Airdrop</CardTitle>
             <CardDescription>Maximum of 2 requests per hour.</CardDescription>
@@ -206,7 +206,7 @@ export default function Home() {
         </Card>
       </div>
 
-      <div className="pointer-events-none abolute top-1/2 mb-20 ml-32 left-1/2 -translate-x-1/2 translate-y-1/2 w-52 h-28 bg-rose-600/70 blur-[120px]"></div>
+      <div className="pointer-events-none abolute top-1/2 mb-20 ml-32 left-1/2 -translate-x-1/2 translate-y-1/2 w-52 h-28 bg-fuchsia-500/80 blur-[120px]"></div>
     </div>
   );
 }
