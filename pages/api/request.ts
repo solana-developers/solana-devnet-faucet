@@ -47,7 +47,7 @@ export default async function handler(
 
         if (
           value.filter((timestamp: number) => timestamp > oneHourAgo).length >=
-          2
+          5
         ) {
           res.status(429).json({
             error: "You have exceeded the 2 airdrops limit in the past hour",
