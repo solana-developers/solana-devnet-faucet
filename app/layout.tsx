@@ -5,7 +5,7 @@ import { ToastContainer } from "react-toastify";
 
 const inter = Inter({ subsets: ["latin"] });
 
-const metadata = {
+export const metadata = {
   title: "Solana Devnet Faucet",
   description: "Get SOL from the Solana Devnet Faucet",
 };
