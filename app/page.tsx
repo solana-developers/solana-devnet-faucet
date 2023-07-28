@@ -191,7 +191,7 @@ export default function Home() {
                 <div className="w-full relative flex items-center justify-center p-5 py-10">
                   <Skeleton className="absolute w-[298px] h-[62px]" />
                   <Turnstile
-                    sitekey="0x4AAAAAAAHKo-ZE1jhM2pyN"
+                    sitekey="0x4AAAAAAAH-Xpks-1nBLn95"
                     onVerify={(token) => {
                       requestAirdrop(token);
                     }}
