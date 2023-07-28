@@ -32,6 +32,7 @@ import { Header } from "@/components/header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/components/ui/use-toast";
+import { Footer } from "@/components/ui/footer";
 
 export default function Home() {
   const amountOptions = [0.5, 1, 2.5, 5];
@@ -129,9 +130,8 @@ export default function Home() {
   return (
     <div className="min-h-screen relative flex items-center justify-center">
       <Toaster />
-
       <Header />
-
+      <Footer />
       <div className="absolute">
         <Card className="mx-2 sm:w-full md:w-[450px]">
           <CardHeader>
@@ -205,7 +205,6 @@ export default function Home() {
           </CardFooter>
         </Card>
       </div>
-
       <div className="pointer-events-none abolute top-1/2 mb-20 ml-32 left-1/2 -translate-x-1/2 translate-y-1/2 w-52 h-28 bg-fuchsia-500/80 blur-[120px]"></div>
     </div>
   );
