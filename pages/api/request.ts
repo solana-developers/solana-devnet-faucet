@@ -10,17 +10,11 @@ import {
   SystemProgram,
 } from "@solana/web3.js";
 import { NextApiRequest, NextApiResponse } from "next";
-import { Client } from "pg";
+import { Client, Pool } from "pg";
 
-const pgClient = new Client({
+const pgClient = new Pool({
   connectionString: process.env.POSTGRES_STRING as string,
 });
-
-pgClient
-  .connect()
-  .then(() => console.log("Connected to PostgreSQL for new request"))
-  // @ts-ignore
-  .catch((err) => console.error("Error connecting to PostgreSQL:", err));
 
 const verifyEndpoint =
   "https://challenges.cloudflare.com/turnstile/v0/siteverify";
