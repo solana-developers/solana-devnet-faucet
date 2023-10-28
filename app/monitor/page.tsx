@@ -79,7 +79,7 @@ export default function Home() {
       >
         <CartesianGrid strokeDasharray="3 3" stroke="blue" />
         <XAxis dataKey="name" />
-        <YAxis domain={[0, "dataMax + 50000"]} />
+        <YAxis />
         <Tooltip />
         <Legend />
         <Curve />
