@@ -121,9 +121,9 @@ export default async function handler(
     ipAddressWithoutDots = ip.replace(/\./g, "");
   }
 
-  await getOrCreateAndVerifyDatabaseEntry(ipAddressWithoutDots);
+  //await getOrCreateAndVerifyDatabaseEntry(ipAddressWithoutDots);
 
-  await getOrCreateAndVerifyDatabaseEntry(walletAddress);
+  //await getOrCreateAndVerifyDatabaseEntry(walletAddress);
 
   const keypair = JSON.parse(process.env.FAUCET_KEYPAIR ?? "");
   const payer = Keypair.fromSecretKey(Uint8Array.from(keypair));
