@@ -129,7 +129,7 @@ export default async function handler(
   const payer = Keypair.fromSecretKey(Uint8Array.from(keypair));
 
   const connection = new Connection(
-    "https://api.devnet.solana.com",
+    process.env.RPC_URL ?? "https://api.devnet.solana.com",
     "confirmed"
   );
 

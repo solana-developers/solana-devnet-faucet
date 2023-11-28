@@ -17,7 +17,7 @@ const pgClient = new Pool({
   connectionString: process.env.POSTGRES_STRING as string,
 });
 
-const network = clusterApiUrl("devnet");
+const network = process.env.RPC_URL ?? "https://api.devnet.solana.com";
 const accountsToMonitor = [
   "6yvwhesLJeE8fNWviosRoUtBP3VFUXE7SEhSP9fFRJ3Z",
   "2pekXzx7WRPtdj4Gvtif1mzmHfc21zpNx2AvW9r4g7bo",
