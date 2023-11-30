@@ -1,5 +1,3 @@
-import fs from "fs";
-import path from "path";
 import {
   LAMPORTS_PER_SOL,
   Keypair,
@@ -10,7 +8,7 @@ import {
   SystemProgram,
 } from "@solana/web3.js";
 import { NextApiRequest, NextApiResponse } from "next";
-import { Client, Pool } from "pg";
+import { Pool } from "pg";
 
 const pgClient = new Pool({
   connectionString: process.env.POSTGRES_STRING as string,
@@ -23,53 +21,6 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const getOrCreateAndVerifyDatabaseEntry = async (key: string) => {
-    const entryQuery = "SELECT * FROM rate_limits WHERE key = $1;";
-    const insertQuery =
-      "INSERT INTO rate_limits (key, timestamps) VALUES ($1, $2);";
-    const updateQuery =
-      "UPDATE rate_limits SET timestamps = $2 WHERE key = $1;";
-
-    const oneHourAgo = Date.now() - 60 * 60 * 1000;
-
-    try {
-      const { rows } = await pgClient.query(entryQuery, [key]);
-      const entry = rows[0];
-
-      if (entry) {
-        const value = entry.timestamps;
-
-        if (
-          value.filter((timestamp: number) => timestamp > oneHourAgo).length >=
-          2
-        ) {
-          res.status(429).json({
-            error: "You have exceeded the 2 airdrops limit in the past hour",
-          });
-          return;
-        }
-
-        value.push(Date.now());
-
-        try {
-          await pgClient.query(updateQuery, [key, value]);
-        } catch (error) {
-          console.error(error);
-          res.status(500).json({ error: "Internal server error" });
-        }
-      } else {
-        try {
-          await pgClient.query(insertQuery, [key, [Date.now()]]);
-        } catch (error) {
-          res.status(500).json({ error: "Internal server error" });
-          console.error(error);
-        }
-      }
-    } catch (error) {
-      res.status(500).json({ error: "Internal server error" });
-      console.error(error);
-    }
-  };
   const ip = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
   const walletAddress = req.body.walletAddress;
   const amount = req.body.amount;
@@ -80,8 +31,25 @@ export default async function handler(
     return;
   }
 
+  try {
+    let pubkey = new PublicKey(walletAddress)
+    let isOnCurve =  PublicKey.isOnCurve(pubkey.toBuffer())
+    if (!isOnCurve) {
+      res.status(400).json({ error: "Address can't be a pda." });
+      return false
+    }
+  } catch (error) {
+      res.status(400).json({ error: "Please enter valid wallet address." });
+      return false
+  }
+
   if (!amount) {
     res.status(400).json({ error: "Missing amount" });
+    return;
+  }
+
+  if (amount > 5) {
+    res.status(400).json({ error: "Amount too big." });
     return;
   }
 
@@ -92,7 +60,7 @@ export default async function handler(
 
   const secret: string = process.env.CLOUDFLARE_SECRET as string;
 
-  const cloudfllareResponse = await fetch(verifyEndpoint, {
+  const cloudflareResponse = await fetch(verifyEndpoint, {
     method: "POST",
     body: `secret=${encodeURIComponent(secret)}&response=${encodeURIComponent(
       cloudflareCallback
@@ -102,7 +70,7 @@ export default async function handler(
     },
   });
 
-  const data = await cloudfllareResponse.json();
+  const data = await cloudflareResponse.json();
 
   if (!data.success) {
     res.status(400).json({ error: "Invalid captcha" });
@@ -121,9 +89,12 @@ export default async function handler(
     ipAddressWithoutDots = ip.replace(/\./g, "");
   }
 
-  await getOrCreateAndVerifyDatabaseEntry(ipAddressWithoutDots);
+  var ipLimitNotReached = await getOrCreateAndVerifyDatabaseEntry(ipAddressWithoutDots, res);
+  var walletLimitNotReached = await getOrCreateAndVerifyDatabaseEntry(walletAddress, res);
 
-  await getOrCreateAndVerifyDatabaseEntry(walletAddress);
+  if(!ipLimitNotReached || !walletLimitNotReached) {
+    return res;
+  }
 
   const keypair = JSON.parse(process.env.FAUCET_KEYPAIR ?? "");
   const payer = Keypair.fromSecretKey(Uint8Array.from(keypair));
@@ -150,11 +121,64 @@ export default async function handler(
       commitment: "confirmed",
     }
   ).catch((err) => {
-    res
+    console.error("Faucet is empty. Please refill");
+    return res
       .status(400)
-      .json({ error: "Faucet is empty, ping @valentinmadrid_ on Twitter" });
-    return;
+      .json({ error: "Faucet is empty, ping @solana_devs on Twitter" });
   });
 
-  res.status(200).json({ success: true, message: "Airdrop successful" });
+  return res.status(200).json({ success: true, message: "Airdrop successful" });
 }
+
+const getOrCreateAndVerifyDatabaseEntry = async (key: string, res: NextApiResponse) => {
+  const entryQuery = "SELECT * FROM rate_limits WHERE key = $1;";
+  const insertQuery =
+    "INSERT INTO rate_limits (key, timestamps) VALUES ($1, $2);";
+  const updateQuery =
+    "UPDATE rate_limits SET timestamps = $2 WHERE key = $1;";
+
+  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+
+  try {
+    const { rows } = await pgClient.query(entryQuery, [key]);
+    const entry = rows[0];
+
+    if (entry) {
+      const value = entry.timestamps;
+
+      if (
+        value.filter((timestamp: number) => timestamp > oneHourAgo).length >=
+        2
+      ) {
+        res.status(429).json({
+          error: "You have exceeded the 2 airdrops limit in the past hour",
+        });
+        return false;
+      }
+
+      value.push(Date.now());
+
+      try {
+        await pgClient.query(updateQuery, [key, value]);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Internal server error" });
+        return false;
+      }
+    } else {
+      try {
+        await pgClient.query(insertQuery, [key, [Date.now()]]);
+      } catch (error) {
+        res.status(500).json({ error: "Internal server error" });
+        console.error(error);
+        return false;
+      }
+    }
+  } catch (error) {
+    res.status(500).json({ error: "Internal server error" });
+    console.error(error);
+    return false;
+  }
+
+  return true;
+};
