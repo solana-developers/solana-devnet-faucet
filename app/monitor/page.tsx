@@ -65,9 +65,8 @@ export default function Home() {
 
   return (
     <div className="w-screen h-screen">
-  
       <p className="text-2xl">Web faucet {allKeys[2] as string}</p>
-        <LineChart
+      <LineChart
         width={900}
         height={600}
         data={chartData}
@@ -80,27 +79,28 @@ export default function Home() {
       >
         <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
         <XAxis dataKey="name" />
-        <YAxis label={{ value: 'Balance', angle: -90, position: 'insideLeft' }}
-           domain={[0, "dataMax + 50000"]} />
-        
+        <YAxis
+          label={{ value: "Balance", angle: -90, position: "insideLeft" }}
+          domain={[0, "dataMax + 50000"]}
+        />
+
         <Tooltip />
         <Legend />
         <Curve />
 
-        {chartData.length > 0 &&
-            // @ts-ignore
-            <Line
-              type="monotone"
-              dataKey={allKeys[2]}
-              stroke={"#8884d8"}
-              key={allKeys[2]}
-              strokeWidth={2}
-              dot={{ stroke: '#8884d8', strokeWidth: 2, r: 4 }}
-            />
-            
-          }
+        {chartData.length > 0 && (
+          // @ts-ignore
+          <Line
+            type="monotone"
+            dataKey={allKeys[2]}
+            stroke={"#8884d8"}
+            key={allKeys[2]}
+            strokeWidth={2}
+            dot={{ stroke: "#8884d8", strokeWidth: 2, r: 4 }}
+          />
+        )}
       </LineChart>
-      
+
       <p className="text-2xl">Pow faucet 1</p>
       <LineChart
         width={900}
@@ -120,18 +120,17 @@ export default function Home() {
         <Legend />
         <Curve />
 
-        {chartData.length > 0 &&
-            // @ts-ignore           
-            <Line
-              type="monotone"
-              dataKey={allKeys[1]}
-              stroke={"#8884d8"}
-              key={allKeys[1]}
-              strokeWidth={2}
-              dot={{ stroke: '#8884d8', strokeWidth: 2, r: 4 }}
-            />
-            
-          }
+        {chartData.length > 0 && (
+          // @ts-ignore
+          <Line
+            type="monotone"
+            dataKey={allKeys[1]}
+            stroke={"#8884d8"}
+            key={allKeys[1]}
+            strokeWidth={2}
+            dot={{ stroke: "#8884d8", strokeWidth: 2, r: 4 }}
+          />
+        )}
       </LineChart>
 
       <p className="text-2xl">Pow faucet 2</p>
@@ -154,19 +153,18 @@ export default function Home() {
         <Legend />
         <Curve />
 
-        {chartData.length > 0 &&
-            // @ts-ignore           
-            <Line
-              type="monotone"
-              dataKey={allKeys[0]}
-              stroke={"#8884d8"}
-              key={allKeys[0]}
-              strokeWidth={2}
-              dot={{ stroke: '#8884d8', strokeWidth: 2, r: 4 }}
-            />
-          }
+        {chartData.length > 0 && (
+          // @ts-ignore
+          <Line
+            type="monotone"
+            dataKey={allKeys[0]}
+            stroke={"#8884d8"}
+            key={allKeys[0]}
+            strokeWidth={2}
+            dot={{ stroke: "#8884d8", strokeWidth: 2, r: 4 }}
+          />
+        )}
       </LineChart>
-
     </div>
   );
 }
