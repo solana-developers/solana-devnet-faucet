@@ -27,6 +27,8 @@ const pgClient = new Pool({
 const AIRDROPS_LIMIT_TOTAL = 2;
 const AIRDROPS_LIMIT_HOURS = 1;
 
+const MAX_SOL_AMOUNT = 5;
+
 const verifyEndpoint =
   "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
@@ -65,7 +67,7 @@ export default async function handler(
     return;
   }
 
-  if (amount > 5) {
+  if (amount > MAX_SOL_AMOUNT) {
     res.status(BAD_REQUEST).json({ error: "Requested SOL amount too large." });
     return;
   }
