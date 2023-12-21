@@ -9,6 +9,13 @@ import {
 } from "@solana/web3.js";
 import { NextApiRequest, NextApiResponse } from "next";
 import { Pool } from "pg";
+import {
+  BAD_REQUEST,
+  HOUR,
+  INTERNAL_SERVER_ERROR,
+  OK,
+  TOO_MANY_REQUESTS,
+} from "./constants";
 
 const pgClient = new Pool({
   connectionString: process.env.POSTGRES_STRING as string,
@@ -21,13 +28,16 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+  const firstForwardedIp = req.headers["x-forwarded-for"]
+    ? req.headers["x-forwarded-for"][0]
+    : null;
+  const ip = firstForwardedIp || req.socket.remoteAddress;
   const walletAddress = req.body.walletAddress;
   const amount = req.body.amount;
   const cloudflareCallback = req.body.cloudflareCallback;
 
   if (!walletAddress) {
-    res.status(400).json({ error: "Missing wallet address" });
+    res.status(BAD_REQUEST).json({ error: "Missing wallet address" });
     return;
   }
 
@@ -35,26 +45,28 @@ export default async function handler(
     let pubkey = new PublicKey(walletAddress);
     let isOnCurve = PublicKey.isOnCurve(pubkey.toBuffer());
     if (!isOnCurve) {
-      res.status(400).json({ error: "Address can't be a PDA." });
+      res.status(BAD_REQUEST).json({ error: "Address can't be a PDA." });
       return false;
     }
-  } catch (error) {
-    res.status(400).json({ error: "Please enter valid wallet address." });
+  } catch (err) {
+    res
+      .status(BAD_REQUEST)
+      .json({ error: "Please enter valid wallet address." });
     return false;
   }
 
   if (!amount) {
-    res.status(400).json({ error: "Missing amount" });
+    res.status(BAD_REQUEST).json({ error: "Missing amount" });
     return;
   }
 
   if (amount > 5) {
-    res.status(400).json({ error: "Amount too big." });
+    res.status(BAD_REQUEST).json({ error: "Amount too big." });
     return;
   }
 
   if (!ip) {
-    res.status(400).json({ error: "Missing IP" });
+    res.status(BAD_REQUEST).json({ error: "Missing IP" });
     return;
   }
 
@@ -73,7 +85,7 @@ export default async function handler(
   const data = await cloudflareResponse.json();
 
   if (!data.success) {
-    res.status(400).json({ error: "Invalid captcha" });
+    res.status(BAD_REQUEST).json({ error: "Invalid captcha" });
     return;
   }
 
@@ -81,11 +93,9 @@ export default async function handler(
 
   if (ip.includes(":")) {
     // IPv6 address
-    // @ts-ignore
     ipAddressWithoutDots = ip.replace(/:/g, "");
   } else {
     // IPv4 address
-    // @ts-ignore
     ipAddressWithoutDots = ip.replace(/\./g, "");
   }
 
@@ -118,22 +128,19 @@ export default async function handler(
     })
   );
 
-  const signature = await sendAndConfirmTransaction(
-    connection,
-    transaction,
-    [payer],
-    {
+  try {
+    await sendAndConfirmTransaction(connection, transaction, [payer], {
       skipPreflight: false,
       commitment: "confirmed",
-    }
-  ).catch((err) => {
+    });
+  } catch (err) {
     console.error("Faucet is empty. Please refill");
     return res
-      .status(400)
+      .status(BAD_REQUEST)
       .json({ error: "Faucet is empty, ping @solana_devs on Twitter" });
-  });
+  }
 
-  return res.status(200).json({ success: true, message: "Airdrop successful" });
+  return res.status(OK).json({ success: true, message: "Airdrop successful" });
 }
 
 const getOrCreateAndVerifyDatabaseEntry = async (
@@ -145,7 +152,7 @@ const getOrCreateAndVerifyDatabaseEntry = async (
     "INSERT INTO rate_limits (key, timestamps) VALUES ($1, $2);";
   const updateQuery = "UPDATE rate_limits SET timestamps = $2 WHERE key = $1;";
 
-  const oneHourAgo = Date.now() - 60 * 60 * 1000;
+  const oneHourAgo = Date.now() - 1 * HOUR;
 
   try {
     const { rows } = await pgClient.query(entryQuery, [key]);
@@ -157,7 +164,7 @@ const getOrCreateAndVerifyDatabaseEntry = async (
       if (
         value.filter((timestamp: number) => timestamp > oneHourAgo).length >= 2
       ) {
-        res.status(429).json({
+        res.status(TOO_MANY_REQUESTS).json({
           error: "You have exceeded the 2 airdrops limit in the past hour",
         });
         return false;
@@ -167,23 +174,27 @@ const getOrCreateAndVerifyDatabaseEntry = async (
 
       try {
         await pgClient.query(updateQuery, [key, value]);
-      } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Internal server error" });
+      } catch (err) {
+        console.error(err);
+        res
+          .status(INTERNAL_SERVER_ERROR)
+          .json({ error: "Internal server error" });
         return false;
       }
     } else {
       try {
         await pgClient.query(insertQuery, [key, [Date.now()]]);
-      } catch (error) {
-        res.status(500).json({ error: "Internal server error" });
-        console.error(error);
+      } catch (err) {
+        res
+          .status(INTERNAL_SERVER_ERROR)
+          .json({ error: "Internal server error" });
+        console.error(err);
         return false;
       }
     }
-  } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
-    console.error(error);
+  } catch (err) {
+    res.status(INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
+    console.error(err);
     return false;
   }
 

@@ -1,17 +1,7 @@
-import fs from "fs";
-import path from "path";
-import {
-  LAMPORTS_PER_SOL,
-  Keypair,
-  PublicKey,
-  Connection,
-  Transaction,
-  sendAndConfirmTransaction,
-  SystemProgram,
-  clusterApiUrl,
-} from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, PublicKey, Connection } from "@solana/web3.js";
 import { NextApiRequest, NextApiResponse } from "next";
-import { Client, Pool } from "pg";
+import { Pool } from "pg";
+import { INTERNAL_SERVER_ERROR, OK } from "./constants";
 
 const pgClient = new Pool({
   connectionString: process.env.POSTGRES_STRING as string,
@@ -24,7 +14,7 @@ const accountsToMonitor = [
   "devwuNsNYACyiEYxRNqMNseBpNnGfnd4ZwNHL7sphqv",
 ].map((acc) => new PublicKey(acc));
 
-export default async (req: NextApiRequest, res: NextApiResponse) => {
+export default async (_: NextApiRequest, res: NextApiResponse) => {
   try {
     const connection = new Connection(network);
 
@@ -41,10 +31,13 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
       );
     }
 
-    res.status(200).send("Balances updated.");
-  } catch (err) {
-    console.error(err);
-    // @ts-ignore
-    res.status(500).send("Error " + err.message);
+    res.status(OK).send("Balances updated.");
+  } catch (thrownObject) {
+    // JS allows you to throw anything, just just an error.
+    // Eg you could throw an Array or a string!
+    // In practice through we just throw errors, hence this 'as'
+    const error = thrownObject as Error;
+    console.error(error);
+    res.status(INTERNAL_SERVER_ERROR).send("Error " + error.message);
   }
 };
