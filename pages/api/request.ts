@@ -62,17 +62,18 @@ export default async function handler(
   }
 
   if (!amount) {
-    res.status(BAD_REQUEST).json({ error: "Missing amount" });
+    res.status(BAD_REQUEST).json({ error: "Missing SOL amount" });
     return;
   }
 
   if (amount > 5) {
-    res.status(BAD_REQUEST).json({ error: "Amount too big." });
+    res.status(BAD_REQUEST).json({ error: "Requested SOL amount too large." });
     return;
   }
 
   if (!ip) {
-    res.status(BAD_REQUEST).json({ error: "Missing IP" });
+    // Not sure we'd ever be in a situation where we don't have an IP
+    res.status(BAD_REQUEST).json({ error: "Could not determine IP" });
     return;
   }
 
@@ -91,7 +92,7 @@ export default async function handler(
   const data = await cloudflareResponse.json();
 
   if (!data.success) {
-    res.status(BAD_REQUEST).json({ error: "Invalid captcha" });
+    res.status(BAD_REQUEST).json({ error: "Invalid CAPTCHA" });
     return;
   }
 
