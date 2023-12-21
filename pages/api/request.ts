@@ -1,3 +1,4 @@
+// This file is 'request' as in request SOL from the faucet, not as in HTTP request.
 import {
   LAMPORTS_PER_SOL,
   Keypair,
@@ -22,6 +23,8 @@ import { checkCloudflare } from "@/lib/cloudflare";
 const pgClient = new Pool({
   connectionString: process.env.POSTGRES_STRING as string,
 });
+
+const IP_ALLOW_LIST = JSON.parse(process.env.IP_ALLOW_LIST as string) ?? [];
 
 // Eg if AIRDROPS_LIMIT_TOTAL is 2, and AIRDROPS_LIMIT_HOURS is 1,
 // then a user can only get 2 airdrops per 1 hour.
@@ -102,8 +105,12 @@ export default async function handler(
     res
   );
 
+  const isAllowListed = process.env.IP_ALLOW_LIST?.includes(ip);
+
   if (isIpLimitReached || isWalletLimitReached) {
-    return res;
+    if (!isAllowListed) {
+      return res;
+    }
   }
 
   const keypair = JSON.parse(process.env.FAUCET_KEYPAIR ?? "");
