@@ -12,6 +12,7 @@ import { Pool } from "pg";
 import {
   BAD_REQUEST,
   HOUR,
+  HOURS,
   INTERNAL_SERVER_ERROR,
   OK,
   TOO_MANY_REQUESTS,
@@ -20,6 +21,11 @@ import {
 const pgClient = new Pool({
   connectionString: process.env.POSTGRES_STRING as string,
 });
+
+// Eg if AIRDROPS_LIMIT_TOTAL is 2, and AIRDROPS_LIMIT_HOURS is 1,
+// then a user can only get 2 airdrops per 1 hour.
+const AIRDROPS_LIMIT_TOTAL = 2;
+const AIRDROPS_LIMIT_HOURS = 1;
 
 const verifyEndpoint =
   "https://challenges.cloudflare.com/turnstile/v0/siteverify";
@@ -152,29 +158,30 @@ const getOrCreateAndVerifyDatabaseEntry = async (
     "INSERT INTO rate_limits (key, timestamps) VALUES ($1, $2);";
   const updateQuery = "UPDATE rate_limits SET timestamps = $2 WHERE key = $1;";
 
-  const oneHourAgo = Date.now() - 1 * HOUR;
+  const timeAgo = Date.now() - AIRDROPS_LIMIT_HOURS * HOURS;
 
   try {
     const { rows } = await pgClient.query(entryQuery, [key]);
     const entry = rows[0];
 
     if (entry) {
-      const value = entry.timestamps;
+      const timestamps: Array<number> = entry.timestamps;
 
       const isExcessiveUsage =
-        value.filter((timestamp: number) => timestamp > oneHourAgo).length >= 2;
+        timestamps.filter((timestamp: number) => timestamp > timeAgo).length >=
+        AIRDROPS_LIMIT_TOTAL;
 
       if (isExcessiveUsage) {
         res.status(TOO_MANY_REQUESTS).json({
-          error: "You have exceeded the 2 airdrops limit in the past hour",
+          error: `You have exceeded the ${AIRDROPS_LIMIT_TOTAL} airdrops limit in the past ${AIRDROPS_LIMIT_HOURS} hour(s)`,
         });
         return false;
       }
 
-      value.push(Date.now());
+      timestamps.push(Date.now());
 
       try {
-        await pgClient.query(updateQuery, [key, value]);
+        await pgClient.query(updateQuery, [key, timestamps]);
       } catch (error) {
         console.error(error);
         res
