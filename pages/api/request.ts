@@ -34,9 +34,8 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const firstForwardedIp = req.headers["x-forwarded-for"]
-    ? req.headers["x-forwarded-for"][0]
-    : null;
+  const forwardedForIps = req.headers["x-forwarded-for"] || [];
+  const firstForwardedIp = forwardedForIps[0] || null;
   const ip = firstForwardedIp || req.socket.remoteAddress;
   const walletAddress = req.body.walletAddress;
   const amount = req.body.amount;
