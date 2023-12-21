@@ -32,15 +32,15 @@ export default async function handler(
   }
 
   try {
-    let pubkey = new PublicKey(walletAddress)
-    let isOnCurve =  PublicKey.isOnCurve(pubkey.toBuffer())
+    let pubkey = new PublicKey(walletAddress);
+    let isOnCurve = PublicKey.isOnCurve(pubkey.toBuffer());
     if (!isOnCurve) {
-      res.status(400).json({ error: "Address can't be a pda." });
-      return false
+      res.status(400).json({ error: "Address can't be a PDA." });
+      return false;
     }
   } catch (error) {
-      res.status(400).json({ error: "Please enter valid wallet address." });
-      return false
+    res.status(400).json({ error: "Please enter valid wallet address." });
+    return false;
   }
 
   if (!amount) {
@@ -89,10 +89,16 @@ export default async function handler(
     ipAddressWithoutDots = ip.replace(/\./g, "");
   }
 
-  var ipLimitNotReached = await getOrCreateAndVerifyDatabaseEntry(ipAddressWithoutDots, res);
-  var walletLimitNotReached = await getOrCreateAndVerifyDatabaseEntry(walletAddress, res);
+  var ipLimitNotReached = await getOrCreateAndVerifyDatabaseEntry(
+    ipAddressWithoutDots,
+    res
+  );
+  var walletLimitNotReached = await getOrCreateAndVerifyDatabaseEntry(
+    walletAddress,
+    res
+  );
 
-  if(!ipLimitNotReached || !walletLimitNotReached) {
+  if (!ipLimitNotReached || !walletLimitNotReached) {
     return res;
   }
 
@@ -130,12 +136,14 @@ export default async function handler(
   return res.status(200).json({ success: true, message: "Airdrop successful" });
 }
 
-const getOrCreateAndVerifyDatabaseEntry = async (key: string, res: NextApiResponse) => {
+const getOrCreateAndVerifyDatabaseEntry = async (
+  key: string,
+  res: NextApiResponse
+) => {
   const entryQuery = "SELECT * FROM rate_limits WHERE key = $1;";
   const insertQuery =
     "INSERT INTO rate_limits (key, timestamps) VALUES ($1, $2);";
-  const updateQuery =
-    "UPDATE rate_limits SET timestamps = $2 WHERE key = $1;";
+  const updateQuery = "UPDATE rate_limits SET timestamps = $2 WHERE key = $1;";
 
   const oneHourAgo = Date.now() - 60 * 60 * 1000;
 
@@ -147,8 +155,7 @@ const getOrCreateAndVerifyDatabaseEntry = async (key: string, res: NextApiRespon
       const value = entry.timestamps;
 
       if (
-        value.filter((timestamp: number) => timestamp > oneHourAgo).length >=
-        2
+        value.filter((timestamp: number) => timestamp > oneHourAgo).length >= 2
       ) {
         res.status(429).json({
           error: "You have exceeded the 2 airdrops limit in the past hour",

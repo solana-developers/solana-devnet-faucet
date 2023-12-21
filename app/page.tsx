@@ -123,7 +123,7 @@ export default function Home() {
         amount !== null &&
         amount <= 5 &&
         errors.wallet === "" &&
-        errors.amount === ""
+        errors.amount === "",
     );
   }, [amount, walletAddress]);
 
