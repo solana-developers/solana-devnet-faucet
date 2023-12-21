@@ -49,7 +49,7 @@ export default function Home() {
     try {
       new PublicKey(address);
       return true;
-    } catch (err) {
+    } catch (error) {
       return false;
     }
   };
@@ -101,10 +101,10 @@ export default function Home() {
           description: `${data.error}`,
         });
       }
-    } catch (err) {
+    } catch (error) {
       toaster.toast({
         title: "Error!",
-        description: `Failed to request airdrop, error: ${err}`,
+        description: `Failed to request airdrop, error: ${error}`,
       });
     }
   };
@@ -123,7 +123,7 @@ export default function Home() {
         amount !== null &&
         amount <= 5 &&
         errors.wallet === "" &&
-        errors.amount === "",
+        errors.amount === ""
     );
   }, [amount, walletAddress]);
 

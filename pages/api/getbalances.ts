@@ -13,8 +13,8 @@ export default async (_: NextApiRequest, res: NextApiResponse) => {
     const results = { results: result ? result.rows : null };
 
     res.json(results);
-  } catch (err) {
-    console.error(err);
-    res.send("Error " + err);
+  } catch (error) {
+    console.error(error);
+    res.send("Error " + error);
   }
 };

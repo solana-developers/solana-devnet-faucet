@@ -48,7 +48,7 @@ export default async function handler(
       res.status(BAD_REQUEST).json({ error: "Address can't be a PDA." });
       return false;
     }
-  } catch (err) {
+  } catch (error) {
     res
       .status(BAD_REQUEST)
       .json({ error: "Please enter valid wallet address." });
@@ -133,7 +133,7 @@ export default async function handler(
       skipPreflight: false,
       commitment: "confirmed",
     });
-  } catch (err) {
+  } catch (error) {
     console.error("Faucet is empty. Please refill");
     return res
       .status(BAD_REQUEST)
@@ -174,8 +174,8 @@ const getOrCreateAndVerifyDatabaseEntry = async (
 
       try {
         await pgClient.query(updateQuery, [key, value]);
-      } catch (err) {
-        console.error(err);
+      } catch (error) {
+        console.error(error);
         res
           .status(INTERNAL_SERVER_ERROR)
           .json({ error: "Internal server error" });
@@ -184,17 +184,17 @@ const getOrCreateAndVerifyDatabaseEntry = async (
     } else {
       try {
         await pgClient.query(insertQuery, [key, [Date.now()]]);
-      } catch (err) {
+      } catch (error) {
         res
           .status(INTERNAL_SERVER_ERROR)
           .json({ error: "Internal server error" });
-        console.error(err);
+        console.error(error);
         return false;
       }
     }
-  } catch (err) {
+  } catch (error) {
     res.status(INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
-    console.error(err);
+    console.error(error);
     return false;
   }
 
