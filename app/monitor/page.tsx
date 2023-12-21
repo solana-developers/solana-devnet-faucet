@@ -53,6 +53,7 @@ export default function Home() {
     fetchBalances();
   }, []);
 
+  // TODO: this needs a proper return type set
   const allKeys = useMemo(() => {
     const keys = chartData.reduce((acc, cur) => {
       Object.keys(cur).forEach((key) => acc.add(key));
