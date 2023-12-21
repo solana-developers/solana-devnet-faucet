@@ -99,16 +99,16 @@ export default async function handler(
     ipAddressWithoutDots = ip.replace(/\./g, "");
   }
 
-  var ipLimitNotReached = await getOrCreateAndVerifyDatabaseEntry(
+  var isIpLimitReached = await getOrCreateAndVerifyDatabaseEntry(
     ipAddressWithoutDots,
     res
   );
-  var walletLimitNotReached = await getOrCreateAndVerifyDatabaseEntry(
+  var isWalletLimitReached = await getOrCreateAndVerifyDatabaseEntry(
     walletAddress,
     res
   );
 
-  if (!ipLimitNotReached || !walletLimitNotReached) {
+  if (isIpLimitReached || isWalletLimitReached) {
     return res;
   }
 
@@ -161,9 +161,10 @@ const getOrCreateAndVerifyDatabaseEntry = async (
     if (entry) {
       const value = entry.timestamps;
 
-      if (
-        value.filter((timestamp: number) => timestamp > oneHourAgo).length >= 2
-      ) {
+      const isExcessiveUsage =
+        value.filter((timestamp: number) => timestamp > oneHourAgo).length >= 2;
+
+      if (isExcessiveUsage) {
         res.status(TOO_MANY_REQUESTS).json({
           error: "You have exceeded the 2 airdrops limit in the past hour",
         });
