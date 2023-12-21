@@ -17,6 +17,7 @@ import {
   OK,
   TOO_MANY_REQUESTS,
 } from "./constants";
+import { checkCloudflare } from "@/lib/cloudflare";
 
 const pgClient = new Pool({
   connectionString: process.env.POSTGRES_STRING as string,
@@ -28,9 +29,6 @@ const AIRDROPS_LIMIT_TOTAL = 2;
 const AIRDROPS_LIMIT_HOURS = 1;
 
 const MAX_SOL_AMOUNT = 5;
-
-const verifyEndpoint =
-  "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
 export default async function handler(
   req: NextApiRequest,
@@ -78,21 +76,9 @@ export default async function handler(
     return;
   }
 
-  const secret: string = process.env.CLOUDFLARE_SECRET as string;
+  const isCloudflareApproved = await checkCloudflare(cloudflareCallback);
 
-  const cloudflareResponse = await fetch(verifyEndpoint, {
-    method: "POST",
-    body: `secret=${encodeURIComponent(secret)}&response=${encodeURIComponent(
-      cloudflareCallback
-    )}`,
-    headers: {
-      "content-type": "application/x-www-form-urlencoded",
-    },
-  });
-
-  const data = await cloudflareResponse.json();
-
-  if (!data.success) {
+  if (!isCloudflareApproved) {
     res.status(BAD_REQUEST).json({ error: "Invalid CAPTCHA" });
     return;
   }
