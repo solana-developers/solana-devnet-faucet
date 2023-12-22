@@ -46,6 +46,8 @@ export default async function handler(
   const amount = req.body.amount;
   const cloudflareCallback = req.body.cloudflareCallback;
 
+  console.log("ip", ip);
+
   if (!walletAddress) {
     res.status(BAD_REQUEST).json({ error: "Missing wallet address" });
     return;
