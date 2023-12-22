@@ -39,8 +39,17 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const forwardedForIps = req.headers["x-forwarded-for"] || [];
-  const firstForwardedIp = forwardedForIps[0] || null;
+  // Annoyingly, req.headers["x-forwarded-for"] can be a string or an array of strings
+  // Let's just make it an array of strings
+  let forwardedForValueOrValues = req.headers["x-forwarded-for"] || [];
+  let forwardedForValues: Array<string> = [];
+  if (Array.isArray(forwardedForValueOrValues)) {
+    forwardedForValues = forwardedForValueOrValues;
+  } else {
+    forwardedForValues = [forwardedForValueOrValues];
+  }
+
+  const firstForwardedIp = forwardedForValues[0] || null;
   const ip = firstForwardedIp || req.socket.remoteAddress;
   const walletAddress = req.body.walletAddress;
   const amount = req.body.amount;
