@@ -24,7 +24,9 @@ const pgClient = new Pool({
   connectionString: process.env.POSTGRES_STRING as string,
 });
 
-const IP_ALLOW_LIST = JSON.parse(process.env.IP_ALLOW_LIST as string) ?? [];
+let IP_ALLOW_LIST: Array<string> = JSON.parse(
+  process.env.IP_ALLOW_LIST || "[]"
+);
 
 // Eg if AIRDROPS_LIMIT_TOTAL is 2, and AIRDROPS_LIMIT_HOURS is 1,
 // then a user can only get 2 airdrops per 1 hour.
@@ -96,16 +98,17 @@ export default async function handler(
     ipAddressWithoutDots = ip.replace(/\./g, "");
   }
 
-  var isIpLimitReached = await getOrCreateAndVerifyDatabaseEntry(
+  const isIpLimitReached = !(await getOrCreateAndVerifyDatabaseEntry(
     ipAddressWithoutDots,
     res
-  );
-  var isWalletLimitReached = await getOrCreateAndVerifyDatabaseEntry(
+  ));
+
+  const isWalletLimitReached = !(await getOrCreateAndVerifyDatabaseEntry(
     walletAddress,
     res
-  );
+  ));
 
-  const isAllowListed = process.env.IP_ALLOW_LIST?.includes(ip);
+  const isAllowListed = IP_ALLOW_LIST?.includes(ip);
 
   if (isIpLimitReached || isWalletLimitReached) {
     if (!isAllowListed) {
@@ -144,6 +147,10 @@ export default async function handler(
   return res.status(OK).json({ success: true, message: "Airdrop successful" });
 }
 
+interface Row {
+  timestamps: Array<number>;
+}
+
 const getOrCreateAndVerifyDatabaseEntry = async (
   key: string,
   res: NextApiResponse
@@ -156,11 +163,12 @@ const getOrCreateAndVerifyDatabaseEntry = async (
   const timeAgo = Date.now() - AIRDROPS_LIMIT_HOURS * HOURS;
 
   try {
-    const { rows } = await pgClient.query(entryQuery, [key]);
+    const queryResult = await pgClient.query(entryQuery, [key]);
+    const rows = queryResult.rows as Array<Row>;
     const entry = rows[0];
 
     if (entry) {
-      const timestamps: Array<number> = entry.timestamps;
+      const timestamps = entry.timestamps;
 
       const isExcessiveUsage =
         timestamps.filter((timestamp: number) => timestamp > timeAgo).length >=
