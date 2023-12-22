@@ -98,15 +98,15 @@ export default async function handler(
     ipAddressWithoutDots = ip.replace(/\./g, "");
   }
 
-  const isIpLimitReached = await getOrCreateAndVerifyDatabaseEntry(
+  const isIpLimitReached = !(await getOrCreateAndVerifyDatabaseEntry(
     ipAddressWithoutDots,
     res
-  );
+  ));
 
-  const isWalletLimitReached = await getOrCreateAndVerifyDatabaseEntry(
+  const isWalletLimitReached = !(await getOrCreateAndVerifyDatabaseEntry(
     walletAddress,
     res
-  );
+  ));
 
   const isAllowListed = IP_ALLOW_LIST?.includes(ip);
 
