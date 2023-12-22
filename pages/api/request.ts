@@ -1,3 +1,4 @@
+// This file is 'request' as in request SOL from the faucet, not as in HTTP request.
 import {
   LAMPORTS_PER_SOL,
   Keypair,
@@ -12,25 +13,32 @@ import { Pool } from "pg";
 import {
   BAD_REQUEST,
   HOUR,
+  HOURS,
   INTERNAL_SERVER_ERROR,
   OK,
   TOO_MANY_REQUESTS,
 } from "./constants";
+import { checkCloudflare } from "@/lib/cloudflare";
 
 const pgClient = new Pool({
   connectionString: process.env.POSTGRES_STRING as string,
 });
 
-const verifyEndpoint =
-  "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+const IP_ALLOW_LIST = JSON.parse(process.env.IP_ALLOW_LIST as string) ?? [];
+
+// Eg if AIRDROPS_LIMIT_TOTAL is 2, and AIRDROPS_LIMIT_HOURS is 1,
+// then a user can only get 2 airdrops per 1 hour.
+const AIRDROPS_LIMIT_TOTAL = 2;
+const AIRDROPS_LIMIT_HOURS = 1;
+
+const MAX_SOL_AMOUNT = 5;
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  const firstForwardedIp = req.headers["x-forwarded-for"]
-    ? req.headers["x-forwarded-for"][0]
-    : null;
+  const forwardedForIps = req.headers["x-forwarded-for"] || [];
+  const firstForwardedIp = forwardedForIps[0] || null;
   const ip = firstForwardedIp || req.socket.remoteAddress;
   const walletAddress = req.body.walletAddress;
   const amount = req.body.amount;
@@ -56,36 +64,25 @@ export default async function handler(
   }
 
   if (!amount) {
-    res.status(BAD_REQUEST).json({ error: "Missing amount" });
+    res.status(BAD_REQUEST).json({ error: "Missing SOL amount" });
     return;
   }
 
-  if (amount > 5) {
-    res.status(BAD_REQUEST).json({ error: "Amount too big." });
+  if (amount > MAX_SOL_AMOUNT) {
+    res.status(BAD_REQUEST).json({ error: "Requested SOL amount too large." });
     return;
   }
 
   if (!ip) {
-    res.status(BAD_REQUEST).json({ error: "Missing IP" });
+    // Not sure we'd ever be in a situation where we don't have an IP
+    res.status(BAD_REQUEST).json({ error: "Could not determine IP" });
     return;
   }
 
-  const secret: string = process.env.CLOUDFLARE_SECRET as string;
+  const isCloudflareApproved = await checkCloudflare(cloudflareCallback);
 
-  const cloudflareResponse = await fetch(verifyEndpoint, {
-    method: "POST",
-    body: `secret=${encodeURIComponent(secret)}&response=${encodeURIComponent(
-      cloudflareCallback
-    )}`,
-    headers: {
-      "content-type": "application/x-www-form-urlencoded",
-    },
-  });
-
-  const data = await cloudflareResponse.json();
-
-  if (!data.success) {
-    res.status(BAD_REQUEST).json({ error: "Invalid captcha" });
+  if (!isCloudflareApproved) {
+    res.status(BAD_REQUEST).json({ error: "Invalid CAPTCHA" });
     return;
   }
 
@@ -99,17 +96,21 @@ export default async function handler(
     ipAddressWithoutDots = ip.replace(/\./g, "");
   }
 
-  var ipLimitNotReached = await getOrCreateAndVerifyDatabaseEntry(
+  var isIpLimitReached = await getOrCreateAndVerifyDatabaseEntry(
     ipAddressWithoutDots,
     res
   );
-  var walletLimitNotReached = await getOrCreateAndVerifyDatabaseEntry(
+  var isWalletLimitReached = await getOrCreateAndVerifyDatabaseEntry(
     walletAddress,
     res
   );
 
-  if (!ipLimitNotReached || !walletLimitNotReached) {
-    return res;
+  const isAllowListed = process.env.IP_ALLOW_LIST?.includes(ip);
+
+  if (isIpLimitReached || isWalletLimitReached) {
+    if (!isAllowListed) {
+      return res;
+    }
   }
 
   const keypair = JSON.parse(process.env.FAUCET_KEYPAIR ?? "");
@@ -152,28 +153,30 @@ const getOrCreateAndVerifyDatabaseEntry = async (
     "INSERT INTO rate_limits (key, timestamps) VALUES ($1, $2);";
   const updateQuery = "UPDATE rate_limits SET timestamps = $2 WHERE key = $1;";
 
-  const oneHourAgo = Date.now() - 1 * HOUR;
+  const timeAgo = Date.now() - AIRDROPS_LIMIT_HOURS * HOURS;
 
   try {
     const { rows } = await pgClient.query(entryQuery, [key]);
     const entry = rows[0];
 
     if (entry) {
-      const value = entry.timestamps;
+      const timestamps: Array<number> = entry.timestamps;
 
-      if (
-        value.filter((timestamp: number) => timestamp > oneHourAgo).length >= 2
-      ) {
+      const isExcessiveUsage =
+        timestamps.filter((timestamp: number) => timestamp > timeAgo).length >=
+        AIRDROPS_LIMIT_TOTAL;
+
+      if (isExcessiveUsage) {
         res.status(TOO_MANY_REQUESTS).json({
-          error: "You have exceeded the 2 airdrops limit in the past hour",
+          error: `You have exceeded the ${AIRDROPS_LIMIT_TOTAL} airdrops limit in the past ${AIRDROPS_LIMIT_HOURS} hour(s)`,
         });
         return false;
       }
 
-      value.push(Date.now());
+      timestamps.push(Date.now());
 
       try {
-        await pgClient.query(updateQuery, [key, value]);
+        await pgClient.query(updateQuery, [key, timestamps]);
       } catch (error) {
         console.error(error);
         res
