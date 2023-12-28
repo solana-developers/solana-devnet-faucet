@@ -33,6 +33,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/components/ui/use-toast";
 import { Footer } from "@/components/ui/footer";
+import { Dropdown } from "@/components/ui/dropdown";
 
 export default function Home() {
   const amountOptions = [0.5, 1, 2.5, 5];
@@ -44,6 +45,7 @@ export default function Home() {
   });
   const [showVerifyDialog, setShowVerifyDialog] = useState<boolean>(false);
   const toaster = useToast();
+  const [network, setSelectedNetwork] = useState('devnet');
 
   const validateWallet = (address: string): boolean => {
     try {
@@ -71,6 +73,10 @@ export default function Home() {
     }
   };
 
+  const handleDropdownChange = (event: any) => {
+    setSelectedNetwork(event.target.value);
+  };
+
   const requestAirdrop = async (cloudflareCallback: string | null = null) => {
     try {
       if (cloudflareCallback === null) {
@@ -85,7 +91,7 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ walletAddress, amount, cloudflareCallback }),
+        body: JSON.stringify({ walletAddress, amount, cloudflareCallback, network: network }),
       });
 
       if (res.ok) {
@@ -132,6 +138,9 @@ export default function Home() {
       <Toaster />
       <Header />
       <Footer />
+      <div className="absolute top-0 left-0 p-4">
+        <Dropdown value={network} onChange={handleDropdownChange} />
+      </div>
       <div className="absolute">
         <Card className="mx-2 sm:w-full md:w-[450px]">
           <CardHeader>

@@ -53,9 +53,10 @@ export default async function handler(
   const ip = firstForwardedIp || req.socket.remoteAddress;
   const walletAddress = req.body.walletAddress;
   const amount = req.body.amount;
+  const network = req.body.network;
   const cloudflareCallback = req.body.cloudflareCallback;
 
-  console.log("ip", ip);
+  console.log("ip, network", ip, network);
 
   if (!walletAddress) {
     res.status(BAD_REQUEST).json({ error: "Missing wallet address" });
@@ -130,8 +131,11 @@ export default async function handler(
   const keypair = JSON.parse(process.env.FAUCET_KEYPAIR ?? "");
   const payer = Keypair.fromSecretKey(Uint8Array.from(keypair));
 
+  const rpc_url = network == "testnet" ? "https://api.testnet.solana.com" : process.env.RPC_URL ?? "https://api.devnet.solana.com";
+  console.log(rpc_url);
+
   const connection = new Connection(
-    process.env.RPC_URL ?? "https://api.devnet.solana.com",
+    rpc_url,
     "confirmed"
   );
 
