@@ -45,7 +45,7 @@ export default function Home() {
   });
   const [showVerifyDialog, setShowVerifyDialog] = useState<boolean>(false);
   const toaster = useToast();
-  const [network, setSelectedNetwork] = useState('devnet');
+  const [network, setSelectedNetwork] = useState("devnet");
 
   const validateWallet = (address: string): boolean => {
     try {
@@ -91,7 +91,12 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ walletAddress, amount, cloudflareCallback, network: network }),
+        body: JSON.stringify({
+          walletAddress,
+          amount,
+          cloudflareCallback,
+          network: network,
+        }),
       });
 
       if (res.ok) {
