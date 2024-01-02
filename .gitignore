@@ -38,3 +38,5 @@ next-env.d.ts
 # database files
 walletData.json
 ipData.json
+.env
+test-ledger
