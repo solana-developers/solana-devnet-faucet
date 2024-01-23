@@ -53,12 +53,12 @@ export default async function handler(
   const network = req.body.network;
   const cloudflareCallback = req.body.cloudflareCallback;
 
-  console.debug(
+  console.info(
     `Incoming request from IP '${ipAddress}' using RPC '${network}'`
   );
 
   if (!ipAddress) {
-    console.debug(
+    console.info(
       `Rejected request for ${amount} SOL to wallet '${walletAddress}' due to remote address missing. Likely a disconnect.`
     );
     return res
@@ -70,7 +70,7 @@ export default async function handler(
     validate(walletAddress, amount);
   } catch (thrownObject) {
     const error = thrownObject as Error;
-    console.debug(
+    console.info(
       `Rejected request for ${amount} SOL to wallet '${walletAddress}' at IP address '${ipAddress}' due to validation failure: ${error.message}`
     );
     return res.status(BAD_REQUEST).json({ error: error.message });
@@ -79,7 +79,7 @@ export default async function handler(
   const isCloudflareApproved = await checkCloudflare(cloudflareCallback);
 
   if (!isCloudflareApproved) {
-    console.debug(
+    console.info(
       `Rejected request for ${amount} SOL to wallet '${walletAddress}' at IP address '${ipAddress}' for failing CAPTCHA`
     );
     return res.status(BAD_REQUEST).json({ error: "Invalid CAPTCHA" });
@@ -103,7 +103,7 @@ export default async function handler(
     // An error here means the wallet has exceeded the limit
     // We'll throw an error unless they're on the allow list
     if (!isAllowListed) {
-      console.debug(
+      console.info(
         `Rejected ${amount} SOL to wallet '${walletAddress}' at IP address '${ipAddress}' due to ${error.message}`
       );
       return res.status(TOO_MANY_REQUESTS).json({ error: error.message });
@@ -142,7 +142,7 @@ export default async function handler(
       .json({ error: "Faucet is empty, ping @solana_devs on Twitter" });
   }
 
-  console.debug(
+  console.info(
     `Airdropped ${amount} SOL to wallet '${walletAddress}' at IP address '${ipAddress}'`
   );
   return res.status(OK).json({ success: true, message: "Airdrop successful" });
