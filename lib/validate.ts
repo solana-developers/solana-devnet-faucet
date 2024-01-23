@@ -11,6 +11,10 @@ export const validate = (walletAddress: string, amount: number): void => {
     throw new Error("Missing SOL amount.");
   }
 
+  if (amount < 0) {
+    throw new Error("Requested SOL amount cannot be negative.");
+  }
+
   if (amount > MAX_SOL_AMOUNT) {
     throw new Error("Requested SOL amount too large.");
   }

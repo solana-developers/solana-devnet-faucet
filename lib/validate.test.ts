@@ -1,5 +1,8 @@
 import { validate } from "./validate";
 
+const WALLET_ADDRESS_FOR_TESTS = "dDCQNnDmNbFVi8cQhKAgXhyhXeJ625tvwsunRyRc7c8";
+const PDA_ADDRESS_FOR_TESTS = "4MD31b2GFAWVDYQT8KG7E5GcZiFyy4MpDUt4BcyEdJRP";
+
 // Write some tests for the validate function
 describe("validate", () => {
   test("allows reasonable usage", () => {
@@ -8,7 +11,7 @@ describe("validate", () => {
 
   test("throws when wallet address is a PDA", () => {
     expect(() => {
-      validate("4MD31b2GFAWVDYQT8KG7E5GcZiFyy4MpDUt4BcyEdJRP", 1);
+      validate(PDA_ADDRESS_FOR_TESTS, 1);
     }).toThrow("Please enter valid wallet address.");
   });
 
@@ -20,13 +23,19 @@ describe("validate", () => {
 
   test("throws when amount is 0", () => {
     expect(() => {
-      validate("abcdef", 0);
+      validate(WALLET_ADDRESS_FOR_TESTS, 0);
     }).toThrow("Missing SOL amount.");
+  });
+
+  test("throws when amount is negative", () => {
+    expect(() => {
+      validate(WALLET_ADDRESS_FOR_TESTS, -3);
+    }).toThrow("Requested SOL amount cannot be negative.");
   });
 
   test("throws when amount is too large", () => {
     expect(() => {
-      validate("abcdef", 6);
+      validate(WALLET_ADDRESS_FOR_TESTS, 6);
     }).toThrow("Requested SOL amount too large.");
   });
 
