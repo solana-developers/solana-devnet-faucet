@@ -9,135 +9,118 @@ import {
   SystemProgram,
 } from "@solana/web3.js";
 import { NextApiRequest, NextApiResponse } from "next";
-import { Pool } from "pg";
 import {
   BAD_REQUEST,
-  HOUR,
-  HOURS,
   INTERNAL_SERVER_ERROR,
   OK,
   TOO_MANY_REQUESTS,
-} from "./constants";
+} from "@/lib/constants";
 import { checkCloudflare } from "@/lib/cloudflare";
-
-const pgClient = new Pool({
-  connectionString: process.env.POSTGRES_STRING as string,
-});
+import { checkLimits } from "@/lib/db";
+import { validate } from "@/lib/validate";
+import { getHeaderValues } from "@/lib/utils";
+import { getKeypairFromEnvironment } from "@solana-developers/node-helpers";
 
 let IP_ALLOW_LIST: Array<string> = JSON.parse(
   process.env.IP_ALLOW_LIST || "[]"
 );
 
-// Eg if AIRDROPS_LIMIT_TOTAL is 2, and AIRDROPS_LIMIT_HOURS is 1,
-// then a user can only get 2 airdrops per 1 hour.
-const AIRDROPS_LIMIT_TOTAL = 2;
-const AIRDROPS_LIMIT_HOURS = 1;
-
-const MAX_SOL_AMOUNT = 5;
-
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
-) {
-  // Annoyingly, req.headers["x-forwarded-for"] can be a string or an array of strings
-  // Let's just make it an array of strings
-  let forwardedForValueOrValues = req.headers["x-forwarded-for"] || [];
-  let forwardedForValues: Array<string> = [];
-  if (Array.isArray(forwardedForValueOrValues)) {
-    forwardedForValues = forwardedForValueOrValues;
-  } else {
-    forwardedForValues = [forwardedForValueOrValues];
-  }
+): Promise<void> {
+  let forwardedForValues = getHeaderValues(req, "x-forwarded-for");
+  const firstForwardedForIp = forwardedForValues[0] || null;
+  const remoteAddress = req.socket.remoteAddress || null;
 
-  const firstForwardedIp = forwardedForValues[0] || null;
-  const ip = firstForwardedIp || req.socket.remoteAddress;
+  const ipAddress = firstForwardedForIp || remoteAddress;
   const walletAddress = req.body.walletAddress;
   const amount = req.body.amount;
+
+  // TODO: the env variable is called FAUCET_KEYPAIR, but it's actually a secret key
+  // we should rename it to FAUCET_PRIVATE_KEY or FAUCET_SECRET_KEY (per newer web3.js naming convention)
+  let payer: Keypair | null = null;
+  try {
+    payer = getKeypairFromEnvironment("FAUCET_KEYPAIR");
+  } catch (error) {
+    console.error(error);
+    return res
+      .status(INTERNAL_SERVER_ERROR)
+      .json({ error: "Internal server error" });
+  }
+
+  // What Solana would call the cluster name, ie 'devnet' or 'testnet'
   const network = req.body.network;
   const cloudflareCallback = req.body.cloudflareCallback;
 
-  console.log("ip, network", ip, network);
+  console.info(
+    `Incoming request from IP '${ipAddress}' using RPC '${network}'`
+  );
 
-  if (!walletAddress) {
-    res.status(BAD_REQUEST).json({ error: "Missing wallet address" });
-    return;
+  if (!ipAddress) {
+    console.info(
+      `Rejected request for ${amount} SOL to wallet '${walletAddress}' due to remote address missing. Likely a disconnect.`
+    );
+    return res
+      .status(BAD_REQUEST)
+      .json({ error: "Remote address has disconnected" });
   }
 
   try {
-    let pubkey = new PublicKey(walletAddress);
-    let isOnCurve = PublicKey.isOnCurve(pubkey.toBuffer());
-    if (!isOnCurve) {
-      res.status(BAD_REQUEST).json({ error: "Address can't be a PDA." });
-      return false;
-    }
-  } catch (error) {
-    res
-      .status(BAD_REQUEST)
-      .json({ error: "Please enter valid wallet address." });
-    return false;
-  }
-
-  if (!amount) {
-    res.status(BAD_REQUEST).json({ error: "Missing SOL amount" });
-    return;
-  }
-
-  if (amount > MAX_SOL_AMOUNT) {
-    res.status(BAD_REQUEST).json({ error: "Requested SOL amount too large." });
-    return;
-  }
-
-  if (!ip) {
-    // Not sure we'd ever be in a situation where we don't have an IP
-    res.status(BAD_REQUEST).json({ error: "Could not determine IP" });
-    return;
+    validate(walletAddress, amount);
+  } catch (thrownObject) {
+    const error = thrownObject as Error;
+    console.info(
+      `Rejected request for ${amount} SOL to wallet '${walletAddress}' at IP address '${ipAddress}' due to validation failure: ${error.message}`
+    );
+    return res.status(BAD_REQUEST).json({ error: error.message });
   }
 
   const isCloudflareApproved = await checkCloudflare(cloudflareCallback);
 
   if (!isCloudflareApproved) {
-    res.status(BAD_REQUEST).json({ error: "Invalid CAPTCHA" });
-    return;
+    console.info(
+      `Rejected request for ${amount} SOL to wallet '${walletAddress}' at IP address '${ipAddress}' for failing CAPTCHA`
+    );
+    return res.status(BAD_REQUEST).json({ error: "Invalid CAPTCHA" });
   }
 
-  let ipAddressWithoutDots;
+  const isAllowListed = IP_ALLOW_LIST?.includes(ipAddress);
 
-  if (ip.includes(":")) {
-    // IPv6 address
-    ipAddressWithoutDots = ip.replace(/:/g, "");
-  } else {
-    // IPv4 address
-    ipAddressWithoutDots = ip.replace(/\./g, "");
-  }
-
-  const isIpLimitReached = !(await getOrCreateAndVerifyDatabaseEntry(
-    ipAddressWithoutDots,
-    res
-  ));
-
-  const isWalletLimitReached = !(await getOrCreateAndVerifyDatabaseEntry(
-    walletAddress,
-    res
-  ));
-
-  const isAllowListed = IP_ALLOW_LIST?.includes(ip);
-
-  if (isIpLimitReached || isWalletLimitReached) {
-    if (!isAllowListed) {
-      return res;
+  try {
+    await checkLimits(ipAddress);
+    await checkLimits(walletAddress);
+  } catch (thrownObject) {
+    const error = thrownObject as Error;
+    // Anything other than 'exceeded' means there's a problem on our end
+    if (!error.message.includes("exceeded")) {
+      console.error(error);
+      return res
+        .status(INTERNAL_SERVER_ERROR)
+        .json({ error: "Internal server error" });
     }
+
+    // An error here means the wallet has exceeded the limit
+    // We'll throw an error unless they're on the allow list
+    if (!isAllowListed) {
+      console.info(
+        `Rejected ${amount} SOL to wallet '${walletAddress}' at IP address '${ipAddress}' due to ${error.message}`
+      );
+      return res.status(TOO_MANY_REQUESTS).json({ error: error.message });
+    }
+
+    console.log(
+      `Allow listed IP '${ipAddress}' exceeded limit, but we'll allow it`
+    );
   }
 
-  const keypair = JSON.parse(process.env.FAUCET_KEYPAIR ?? "");
-  const payer = Keypair.fromSecretKey(Uint8Array.from(keypair));
+  const RPC_URL =
+    network === "testnet"
+      ? "https://api.testnet.solana.com"
+      : process.env.RPC_URL ?? "https://api.devnet.solana.com";
+  console.log(RPC_URL);
 
-  const rpc_url = network == "testnet" ? "https://api.testnet.solana.com" : process.env.RPC_URL ?? "https://api.devnet.solana.com";
-  console.log(rpc_url);
-
-  const connection = new Connection(
-    rpc_url,
-    "confirmed"
-  );
+  const connection = new Connection(RPC_URL, "confirmed");
 
   const transaction = new Transaction().add(
     SystemProgram.transfer({
@@ -159,70 +142,8 @@ export default async function handler(
       .json({ error: "Faucet is empty, ping @solana_devs on Twitter" });
   }
 
+  console.info(
+    `Airdropped ${amount} SOL to wallet '${walletAddress}' at IP address '${ipAddress}'`
+  );
   return res.status(OK).json({ success: true, message: "Airdrop successful" });
 }
-
-interface Row {
-  timestamps: Array<number>;
-}
-
-const getOrCreateAndVerifyDatabaseEntry = async (
-  key: string,
-  res: NextApiResponse
-) => {
-  const entryQuery = "SELECT * FROM rate_limits WHERE key = $1;";
-  const insertQuery =
-    "INSERT INTO rate_limits (key, timestamps) VALUES ($1, $2);";
-  const updateQuery = "UPDATE rate_limits SET timestamps = $2 WHERE key = $1;";
-
-  const timeAgo = Date.now() - AIRDROPS_LIMIT_HOURS * HOURS;
-
-  try {
-    const queryResult = await pgClient.query(entryQuery, [key]);
-    const rows = queryResult.rows as Array<Row>;
-    const entry = rows[0];
-
-    if (entry) {
-      const timestamps = entry.timestamps;
-
-      const isExcessiveUsage =
-        timestamps.filter((timestamp: number) => timestamp > timeAgo).length >=
-        AIRDROPS_LIMIT_TOTAL;
-
-      if (isExcessiveUsage) {
-        res.status(TOO_MANY_REQUESTS).json({
-          error: `You have exceeded the ${AIRDROPS_LIMIT_TOTAL} airdrops limit in the past ${AIRDROPS_LIMIT_HOURS} hour(s)`,
-        });
-        return false;
-      }
-
-      timestamps.push(Date.now());
-
-      try {
-        await pgClient.query(updateQuery, [key, timestamps]);
-      } catch (error) {
-        console.error(error);
-        res
-          .status(INTERNAL_SERVER_ERROR)
-          .json({ error: "Internal server error" });
-        return false;
-      }
-    } else {
-      try {
-        await pgClient.query(insertQuery, [key, [Date.now()]]);
-      } catch (error) {
-        res
-          .status(INTERNAL_SERVER_ERROR)
-          .json({ error: "Internal server error" });
-        console.error(error);
-        return false;
-      }
-    }
-  } catch (error) {
-    res.status(INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
-    console.error(error);
-    return false;
-  }
-
-  return true;
-};
