@@ -32,3 +32,10 @@ npm run dev
 ## Deploy
 
 Deploying is done automatically as soon as the code is committed onto master via Vercel.
+
+Vercel also needs these details:
+
+```
+RPC_URL: "string"
+CLOUDFLARE_SECRET: "string"
+```
