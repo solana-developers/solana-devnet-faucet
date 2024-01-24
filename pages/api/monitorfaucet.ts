@@ -1,7 +1,7 @@
 import { LAMPORTS_PER_SOL, PublicKey, Connection } from "@solana/web3.js";
 import { NextApiRequest, NextApiResponse } from "next";
 import { Pool } from "pg";
-import { INTERNAL_SERVER_ERROR, OK } from "@/lib/constants";
+import { INTERNAL_SERVER_ERROR, OK } from "./constants";
 
 const pgClient = new Pool({
   connectionString: process.env.POSTGRES_STRING as string,
