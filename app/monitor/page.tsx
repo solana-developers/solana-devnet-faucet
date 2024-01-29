@@ -25,6 +25,17 @@ interface ChartData {
 export default function Home() {
   const [chartData, setChartData] = useState<ChartData[]>([]);
 
+  // TODO: this needs a proper return type set
+  const allKeys = useMemo(() => {
+    const keys = chartData.reduce((acc, cur) => {
+      Object.keys(cur).forEach(key => acc.add(key));
+      return acc;
+    }, new Set());
+
+    keys.delete("name");
+    return Array.from(keys);
+  }, [chartData]);
+
   useEffect(() => {
     const fetchBalances = async () => {
       const res = await fetch("/api/getbalances");
@@ -35,7 +46,7 @@ export default function Home() {
 
       console.log("results", results);
 
-      results.forEach((r) => {
+      results.forEach(r => {
         if (!dataMap[r.date]) {
           dataMap[r.date] = { name: new Date(r.date).toLocaleDateString() };
         }
@@ -49,20 +60,9 @@ export default function Home() {
       console.log(dataArray, "DATA ARRAY");
     };
 
-    console.log(allKeys, "ALL KEYS");
+    console.log("ALL KEYS:", allKeys);
     fetchBalances();
-  }, []);
-
-  // TODO: this needs a proper return type set
-  const allKeys = useMemo(() => {
-    const keys = chartData.reduce((acc, cur) => {
-      Object.keys(cur).forEach((key) => acc.add(key));
-      return acc;
-    }, new Set());
-
-    keys.delete("name");
-    return Array.from(keys);
-  }, [chartData]);
+  }, [allKeys]);
 
   return (
     <div className="w-screen h-screen">
