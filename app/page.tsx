@@ -199,7 +199,7 @@ export default function Home() {
           />
 
           <Popover>
-            <PopoverTrigger disabled={loading}>
+            <PopoverTrigger disabled={loading} asChild>
               <Button
                 type="button"
                 className="w-24"
@@ -234,7 +234,7 @@ export default function Home() {
               type="submit"
               className="w-full"
               variant="default"
-              disabled={loading || !isFormValid}
+              disabled={!isFormValid || loading}
             >
               {loading ? (
                 <Image src={svgLoader} alt="Loading..." className="h-10" />
