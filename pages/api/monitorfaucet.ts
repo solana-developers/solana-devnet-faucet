@@ -12,9 +12,9 @@ const accountsToMonitor = [
   "6yvwhesLJeE8fNWviosRoUtBP3VFUXE7SEhSP9fFRJ3Z",
   "2pekXzx7WRPtdj4Gvtif1mzmHfc21zpNx2AvW9r4g7bo",
   "devwuNsNYACyiEYxRNqMNseBpNnGfnd4ZwNHL7sphqv",
-].map((acc) => new PublicKey(acc));
+].map(acc => new PublicKey(acc));
 
-export default async (_: NextApiRequest, res: NextApiResponse) => {
+const handler = async (_: NextApiRequest, res: NextApiResponse) => {
   try {
     const connection = new Connection(network);
 
@@ -27,7 +27,7 @@ export default async (_: NextApiRequest, res: NextApiResponse) => {
       // Insert the balance and current date into the database
       await pgClient.query(
         "INSERT INTO solana_balances (account, balance, date) VALUES ($1, $2, $3)",
-        [account.toString(), balance, new Date()]
+        [account.toString(), balance, new Date()],
       );
     }
 
@@ -41,3 +41,5 @@ export default async (_: NextApiRequest, res: NextApiResponse) => {
     res.status(INTERNAL_SERVER_ERROR).send("Error " + error.message);
   }
 };
+
+export default handler;

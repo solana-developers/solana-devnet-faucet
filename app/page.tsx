@@ -131,7 +131,7 @@ export default function Home() {
 
       setLoading(false);
     },
-    [network, walletAddress, amount],
+    [toaster, network, walletAddress, amount],
   );
 
   useEffect(() => {
@@ -148,7 +148,7 @@ export default function Home() {
         errors.wallet === "" &&
         errors.amount === "",
     );
-  }, [amount, walletAddress]);
+  }, [errors.amount, errors.wallet, amount, walletAddress]);
 
   //
   const submitHandler = useCallback(
