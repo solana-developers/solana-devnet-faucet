@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, ChangeEvent, useEffect, useCallback } from "react";
+import { useState, ChangeEvent, useEffect, useCallback } from "react";
 import { PublicKey } from "@solana/web3.js";
 import {
   Card,
@@ -23,10 +23,8 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Header } from "@/components/header";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,9 +33,14 @@ import { useToast } from "@/components/ui/use-toast";
 import { Footer } from "@/components/ui/footer";
 import { Dropdown } from "@/components/ui/dropdown";
 
+import Image from "next/image";
+import svgLoader from "@/public/svgLoader.svg";
+
 export default function Home() {
   const toaster = useToast();
   const amountOptions = [0.5, 1, 2.5, 5];
+  const [loading, setLoading] = useState<boolean>(false);
+
   const [walletAddress, setWalletAddress] = useState<string>("");
   const [amount, setAmount] = useState<number | null>(null);
   const [errors, setErrors] = useState<{ wallet: string; amount: string }>({
@@ -91,6 +94,8 @@ export default function Home() {
           });
         }
 
+        setLoading(true);
+
         const res = await fetch("/api/request", {
           method: "POST",
           headers: {
@@ -123,6 +128,8 @@ export default function Home() {
           description: `Failed to request airdrop, error: ${error}`,
         });
       }
+
+      setLoading(false);
     },
     [network, walletAddress, amount],
   );
@@ -143,18 +150,42 @@ export default function Home() {
     );
   }, [amount, walletAddress]);
 
+  //
+  const submitHandler = useCallback(
+    (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+
+      if (loading) return;
+
+      if (process.env.NODE_ENV == "development") requestAirdrop();
+      else setShowVerifyDialog(true);
+    },
+    [loading, requestAirdrop, setShowVerifyDialog],
+  );
+
   return (
-    <div className="relative flex items-center justify-center min-h-screen">
+    <form
+      onSubmit={submitHandler}
+      className="relative flex items-center justify-center min-h-screen"
+    >
       <Toaster />
       <Header />
       <Footer />
-      <div className="absolute top-0 left-0 p-4">
-        <Dropdown value={network} onChange={handleDropdownChange} />
-      </div>
 
       <Card className="w-full mx-4 md:max-w-lg">
         <CardHeader>
-          <CardTitle>Request Airdrop</CardTitle>
+          <CardTitle>
+            <div className="flex items-center justify-between gap-3">
+              <span>Request Airdrop</span>
+
+              <Dropdown
+                value={network}
+                onChange={handleDropdownChange}
+                className="w-min"
+                disabled={loading}
+              />
+            </div>
+          </CardTitle>
           <CardDescription>Maximum of 2 requests per hour.</CardDescription>
         </CardHeader>
 
@@ -163,20 +194,29 @@ export default function Home() {
             placeholder="Wallet Address"
             onChange={handleWalletChange}
             value={walletAddress}
+            required={true}
+            disabled={loading}
           />
 
           <Popover>
-            <PopoverTrigger>
-              <Button className="w-24" variant="outline">
-                {amount ? amount + " SOL" : "Amount"}
+            <PopoverTrigger disabled={loading}>
+              <Button
+                type="button"
+                className="w-24"
+                variant="outline"
+                disabled={loading}
+              >
+                {!!amount ? amount + " SOL" : "Amount"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="grid w-32 grid-cols-2 gap-2">
               {amountOptions.map(option => (
                 <Button
                   key={option}
+                  type="button"
                   variant="outline"
                   onClick={() => setAmount(option)}
+                  disabled={loading}
                 >
                   {option}
                 </Button>
@@ -191,16 +231,18 @@ export default function Home() {
             onOpenChange={(open: boolean) => setShowVerifyDialog(open)}
           >
             <Button
+              type="submit"
               className="w-full"
               variant="default"
-              disabled={!isFormValid}
-              onClick={() =>
-                process.env.NODE_ENV == "development"
-                  ? requestAirdrop()
-                  : setShowVerifyDialog(true)
-              }
+              disabled={loading || !isFormValid}
             >
-              <Coins className="w-4 h-4 mr-2" /> Confirm Airdrop
+              {loading ? (
+                <Image src={svgLoader} alt="Loading..." className="h-10" />
+              ) : (
+                <>
+                  <Coins className="w-4 h-4 mr-2" /> Confirm Airdrop
+                </>
+              )}
             </Button>
 
             <DialogContent className="max-w-[450px]">
@@ -229,6 +271,6 @@ export default function Home() {
       </Card>
 
       <div className="pointer-events-none absolute top-1/2 mb-20 ml-32 left-1/2 -translate-x-1/2 translate-y-1/2 w-52 h-28 bg-fuchsia-500/80 blur-[120px]"></div>
-    </div>
+    </form>
   );
 }
