@@ -17,7 +17,7 @@ import {
   INTERNAL_SERVER_ERROR,
   OK,
   TOO_MANY_REQUESTS,
-} from "./constants";
+} from "@/lib/constants";
 import { checkCloudflare } from "@/lib/cloudflare";
 import { getKeypairFromEnvironment } from "@solana-developers/helpers";
 

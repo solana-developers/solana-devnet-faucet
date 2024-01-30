@@ -11,3 +11,7 @@ export const MINUTE = 60 * SECOND;
 export const MINUTES = MINUTE;
 export const HOUR = 60 * MINUTE;
 export const HOURS = HOUR;
+
+export const SITE = {
+  domain: "faucet.solana.com",
+};
