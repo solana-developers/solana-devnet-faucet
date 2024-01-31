@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  @apply bg-background text-foreground;
+}
+
 /* Remove input number arrows - Webkit */
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
@@ -42,8 +46,5 @@ input[type="number"] {
 @layer base {
   * {
     @apply border-border;
-  }
-  body {
-    @apply bg-background text-foreground;
   }
 }

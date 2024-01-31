@@ -65,7 +65,7 @@ export default function Home() {
   }, [allKeys]);
 
   return (
-    <div className="w-screen h-screen">
+    <div className="p-8 mx-auto space-y-4">
       <p className="text-2xl">Web faucet {allKeys[2] as string}</p>
       <LineChart
         width={900}

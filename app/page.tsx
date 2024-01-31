@@ -26,11 +26,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Header } from "@/components/header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/components/ui/use-toast";
-import { Footer } from "@/components/ui/footer";
 import { Dropdown } from "@/components/ui/dropdown";
 
 import Image from "next/image";
@@ -175,13 +173,11 @@ export default function Home() {
   return (
     <form
       onSubmit={submitHandler}
-      className="relative flex items-center justify-center min-h-screen"
+      className="items-center justify-center md:flex md:py-20"
     >
-      <Toaster />
-      <Header />
-      <Footer />
+      {/* <Toaster /> */}
 
-      <Card className="w-full mx-4 md:max-w-lg">
+      <Card className="w-full mx-auto md:max-w-lg">
         <CardHeader>
           <CardTitle>
             <div className="flex items-center justify-between gap-3">
@@ -280,7 +276,7 @@ export default function Home() {
         </CardFooter>
       </Card>
 
-      <div className="pointer-events-none absolute top-1/2 mb-20 ml-32 left-1/2 -translate-x-1/2 translate-y-1/2 w-52 h-28 bg-fuchsia-500/80 blur-[120px]"></div>
+      <div className="pointer-events-none fixed top-1/2 mb-20 ml-32 left-1/2 -translate-x-1/2 translate-y-1/2 w-52 h-28 bg-fuchsia-500/80 blur-[120px]"></div>
     </form>
   );
 }
