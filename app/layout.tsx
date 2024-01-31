@@ -1,14 +1,19 @@
-import "./globals.css";
+import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/ui/footer";
+import "./globals.css";
 import "react-toastify/dist/ReactToastify.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata = {
-  title: "Solana Devnet Faucet",
-  description: "Get SOL from the Solana Devnet Faucet",
+/**
+ * Set the default metadata for all pages on the site
+ */
+export const metadata: Metadata = {
+  metadataBase: new URL("https://faucet.solana.com"),
+  title: "Solana Devnet Faucet - Airdrop SOL",
+  description: "Get a SOL airdrop from this public Solana Devnet Faucet.",
 };
 
 export default function RootLayout({
