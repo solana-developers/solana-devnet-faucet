@@ -175,7 +175,7 @@ export default function Home() {
       onSubmit={submitHandler}
       className="items-center justify-center md:flex md:py-20"
     >
-      {/* <Toaster /> */}
+      <Toaster />
 
       <Card className="w-full mx-auto md:max-w-lg">
         <CardHeader>
