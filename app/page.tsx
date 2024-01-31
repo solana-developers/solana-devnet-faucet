@@ -96,7 +96,7 @@ export default function Home() {
 
         setLoading(true);
 
-        const res = await fetch("/api/request", {
+        await fetch("/api/request", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -107,25 +107,34 @@ export default function Home() {
             cloudflareCallback,
             network,
           }),
-        });
+        })
+          .then(async res => {
+            const data = await res.json();
 
-        if (res.ok) {
-          toaster.toast({
-            title: "Success!",
-            description: "Airdrop was successful.",
-          });
-        } else {
-          const data = await res.json();
+            if (!res.ok) throw data?.error || "Airdrop failed";
 
-          toaster.toast({
-            title: "Error!",
-            description: `${data.error}`,
+            toaster.toast({
+              title: "Success!",
+              description: "Airdrop was successful.",
+            });
+          })
+          .catch(err => {
+            let errorMessage = "Airdrop request failed";
+
+            if (typeof err == "string") errorMessage = err;
+            else if (err instanceof Error) errorMessage = err.message;
+
+            toaster.toast({
+              title: "Error!",
+              description: errorMessage,
+            });
           });
-        }
-      } catch (error) {
+      } catch (err) {
+        console.error(err);
+
         toaster.toast({
           title: "Error!",
-          description: `Failed to request airdrop, error: ${error}`,
+          description: `Failed to request airdrop, error: ${err instanceof Error ? err.message : err}`,
         });
       }
 
@@ -135,12 +144,12 @@ export default function Home() {
   );
 
   useEffect(() => {
-    console.log({
-      walletAddress,
-      amount,
-      errorsWallet: errors.wallet,
-      errorsAmount: errors.amount,
-    });
+    // console.log({
+    //   walletAddress,
+    //   amount,
+    //   errorsWallet: errors.wallet,
+    //   errorsAmount: errors.amount,
+    // });
     setIsFormValid(
       walletAddress !== "" &&
         amount !== null &&

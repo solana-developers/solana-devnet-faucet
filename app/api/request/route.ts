@@ -32,10 +32,12 @@ const AIRDROPS_LIMIT_HOURS = 1;
 
 const MAX_SOL_AMOUNT = 5;
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse,
-) {
+export const dynamic = "force-dynamic"; // defaults to auto
+
+/**
+ * Define the handler function for POST requests to this endpoint
+ */
+export async function POST(req: Request) {
   try {
     // load the desired keypair from the server's ENV
     let serverKeypair: Keypair;
@@ -47,7 +49,7 @@ export default async function handler(
 
     // Annoyingly, req.headers["x-forwarded-for"] can be a string or an array of strings
     // Let's just make it an array of strings
-    let forwardedForValueOrValues = req.headers["x-forwarded-for"] || [];
+    let forwardedForValueOrValues = req.headers.get("x-forwarded-for") || [];
     let forwardedForValues: Array<string> = [];
     if (Array.isArray(forwardedForValueOrValues)) {
       forwardedForValues = forwardedForValueOrValues;
@@ -55,8 +57,7 @@ export default async function handler(
       forwardedForValues = [forwardedForValueOrValues];
     }
 
-    const firstForwardedIp = forwardedForValues[0] || null;
-    const ip = firstForwardedIp || req.socket.remoteAddress;
+    const ip = forwardedForValues[0] || null;
 
     // get the required data submitted from the client
     const {
@@ -65,7 +66,7 @@ export default async function handler(
       amount,
       network,
       cloudflareCallback,
-    } = req.body;
+    } = await req.json();
 
     console.log("ip", ip);
     console.log("network", network);
@@ -79,29 +80,25 @@ export default async function handler(
 
       // verify the wallet is not a PDA
       if (!PublicKey.isOnCurve(userWallet.toBuffer())) {
-        return res
-          .status(BAD_REQUEST)
-          .json({ error: "Address can't be a PDA." });
+        throw Error("Address cannot be a PDA");
       }
 
       // when here, the user provided wallet is considered valid
     } catch (err) {
-      return res.status(BAD_REQUEST).json({ error: "Invalid wallet address" });
+      throw Error("Invalid wallet address");
     }
 
     if (!amount) {
-      return res.status(BAD_REQUEST).json({ error: "Missing SOL amount" });
+      throw Error("Missing SOL amount");
     }
 
     if (amount > MAX_SOL_AMOUNT) {
-      return res
-        .status(BAD_REQUEST)
-        .json({ error: "Requested SOL amount too large." });
+      throw Error("Requested SOL amount too large");
     }
 
     if (!ip) {
       // Not sure we'd ever be in a situation where we don't have an IP
-      return res.status(BAD_REQUEST).json({ error: "Could not determine IP" });
+      throw Error("Could not determine IP");
     }
 
     // skip the cloudflare check when working on localhost
@@ -109,7 +106,7 @@ export default async function handler(
       const isCloudflareApproved = await checkCloudflare(cloudflareCallback);
 
       if (!isCloudflareApproved) {
-        return res.status(BAD_REQUEST).json({ error: "Invalid CAPTCHA" });
+        throw Error("Invalid CAPTCHA");
       }
     } else {
       console.warn("SKIP CLOUDFLARE CHECK IN DEVELOPMENT MODE");
@@ -132,19 +129,31 @@ export default async function handler(
         ipAddressWithoutDots = ip.replace(/\./g, "");
       }
 
-      const isIpLimitReached = !(await getOrCreateAndVerifyDatabaseEntry(
-        ipAddressWithoutDots,
-        res,
-      ));
+      try {
+        // perform all database rate limit checks at the same time
+        // if one throws an error, the requestor is rate limited
+        await Promise.all([
+          // check for rate limits on the requestors ip address
+          getOrCreateAndVerifyDatabaseEntry(ipAddressWithoutDots),
 
-      const isWalletLimitReached = !(await getOrCreateAndVerifyDatabaseEntry(
-        userWallet.toBase58(),
-        res,
-      ));
+          // check for rate limits on the requestors wallet address
+          getOrCreateAndVerifyDatabaseEntry(userWallet.toBase58()),
+        ]);
 
-      // check if a rate limit was reached
-      if (isIpLimitReached || isWalletLimitReached) {
-        return res;
+        /**
+         * when here, we assume the request is not rate limited
+         * since none of the above Promises will have throw an error
+         */
+      } catch (err) {
+        // set the default error message
+        let errorMessage = "Rate limit exceeded";
+
+        // handle custom error and their messages
+        if (err instanceof Error) {
+          errorMessage = err.message;
+        }
+
+        throw Error(errorMessage);
       }
     }
 
@@ -156,6 +165,13 @@ export default async function handler(
 
     const connection = new Connection(rpc_url, "confirmed");
 
+    let blockhash: string;
+    try {
+      blockhash = (await connection.getLatestBlockhash()).blockhash;
+    } catch (err) {
+      throw Error("Unable to get latest blockhash");
+    }
+
     const transaction = new Transaction().add(
       SystemProgram.transfer({
         fromPubkey: serverKeypair.publicKey,
@@ -163,6 +179,7 @@ export default async function handler(
         lamports: amount * LAMPORTS_PER_SOL,
       }),
     );
+    transaction.recentBlockhash = blockhash;
 
     try {
       // send and confirm the transaction
@@ -176,9 +193,16 @@ export default async function handler(
       );
 
       // finally return a success 200 message when the transaction was successful
-      return res
-        .status(OK)
-        .json({ success: true, message: "Airdrop successful", signature });
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "Airdrop successful",
+          signature,
+        }),
+        {
+          status: 200,
+        },
+      );
     } catch (error) {
       console.log(error);
       console.error("Faucet is empty. Please refill");
@@ -192,12 +216,16 @@ export default async function handler(
     console.warn(err);
 
     // set the default error message
-    let message = "Unable to complete airdrop";
+    let errorMessage = "Unable to complete airdrop";
 
     // handle custom error and their messages
-    if (err instanceof Error) message = err.message;
+    if (err instanceof Error) {
+      errorMessage = err.message;
+    }
 
-    return res.status(BAD_REQUEST).json({ error: message });
+    return new Response(JSON.stringify({ error: errorMessage }), {
+      status: 400,
+    });
   }
 }
 
@@ -205,10 +233,7 @@ interface Row {
   timestamps: Array<number>;
 }
 
-const getOrCreateAndVerifyDatabaseEntry = async (
-  key: string,
-  res: NextApiResponse,
-) => {
+const getOrCreateAndVerifyDatabaseEntry = async (key: string) => {
   const entryQuery = "SELECT * FROM rate_limits WHERE key = $1;";
   const insertQuery =
     "INSERT INTO rate_limits (key, timestamps) VALUES ($1, $2);";
@@ -216,48 +241,39 @@ const getOrCreateAndVerifyDatabaseEntry = async (
 
   const timeAgo = Date.now() - AIRDROPS_LIMIT_HOURS * HOURS;
 
-  try {
-    const queryResult = await pgClient.query(entryQuery, [key]);
-    const rows = queryResult.rows as Array<Row>;
-    const entry = rows[0];
+  const queryResult = await pgClient.query(entryQuery, [key]);
+  const rows = queryResult.rows as Array<Row>;
 
-    if (entry) {
-      const timestamps = entry.timestamps;
+  // check and see if the current requestor has attempted an airdrop before
+  const entry = rows[0];
+  if (entry) {
+    const timestamps = entry.timestamps;
 
-      const isExcessiveUsage =
-        timestamps.filter((timestamp: number) => timestamp > timeAgo).length >=
-        AIRDROPS_LIMIT_TOTAL;
+    const isExcessiveUsage =
+      timestamps.filter((timestamp: number) => timestamp > timeAgo).length >=
+      AIRDROPS_LIMIT_TOTAL;
 
-      if (isExcessiveUsage) {
-        return res.status(TOO_MANY_REQUESTS).json({
-          error: `You have exceeded the ${AIRDROPS_LIMIT_TOTAL} airdrops limit in the past ${AIRDROPS_LIMIT_HOURS} hour(s)`,
-        });
-      }
-
-      timestamps.push(Date.now());
-
-      try {
-        await pgClient.query(updateQuery, [key, timestamps]);
-      } catch (error) {
-        console.error(error);
-        res
-          .status(INTERNAL_SERVER_ERROR)
-          .json({ error: "Internal server error" });
-      }
-    } else {
-      try {
-        await pgClient.query(insertQuery, [key, [Date.now()]]);
-      } catch (error) {
-        res
-          .status(INTERNAL_SERVER_ERROR)
-          .json({ error: "Internal server error" });
-        console.error(error);
-      }
+    if (isExcessiveUsage) {
+      throw Error(
+        `You have exceeded the ${AIRDROPS_LIMIT_TOTAL} airdrops limit in the past ${AIRDROPS_LIMIT_HOURS} hour(s)`,
+      );
     }
-  } catch (error) {
-    res.status(INTERNAL_SERVER_ERROR).json({ error: "Internal server error" });
-    console.error(error);
+
+    timestamps.push(Date.now());
+
+    // update the requestor's info to track perform future rate limit checks
+    await pgClient.query(updateQuery, [key, timestamps]).catch(err => {
+      console.error("[DB ERROR]", err);
+      throw Error("Rate limit error occurred");
+    });
+  } else {
+    // when no current `entry` exists, we will record the new requestor in the database
+    await pgClient.query(insertQuery, [key, [Date.now()]]).catch(err => {
+      console.error("[DB ERROR]", err);
+      throw Error("Rate limit error occurred");
+    });
   }
 
+  // when here, we are sure the user has not been rate limited
   return true;
 };
