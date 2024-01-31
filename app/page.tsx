@@ -267,6 +267,7 @@ export default function Home() {
                 <Turnstile
                   sitekey="0x4AAAAAAAH-Xpks-1nBLn95"
                   onVerify={token => {
+                    setShowVerifyDialog(false);
                     requestAirdrop(token);
                   }}
                   refreshExpired="auto"
