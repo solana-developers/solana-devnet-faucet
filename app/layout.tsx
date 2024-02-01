@@ -4,6 +4,7 @@ import { Header } from "@/components/header";
 import { Footer } from "@/components/ui/footer";
 import "./globals.css";
 import "react-toastify/dist/ReactToastify.css";
+import { SITE } from "@/lib/constants";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -11,7 +12,7 @@ const inter = Inter({ subsets: ["latin"] });
  * Set the default metadata for all pages on the site
  */
 export const metadata: Metadata = {
-  metadataBase: new URL("https://faucet.solana.com"),
+  metadataBase: new URL(SITE.url),
   title: "Solana Devnet Faucet - Airdrop SOL",
   description: "Get a SOL airdrop from this public Solana Devnet Faucet.",
 };

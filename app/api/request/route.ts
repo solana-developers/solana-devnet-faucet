@@ -1,4 +1,9 @@
-// This file is 'request' as in request SOL from the faucet, not as in HTTP request.
+/**
+ * `/api/request` endpoint
+ *
+ * allows people to request devnet and testnet sol be airdropped to their wallet
+ */
+
 import {
   LAMPORTS_PER_SOL,
   Keypair,
@@ -8,29 +13,14 @@ import {
   sendAndConfirmTransaction,
   SystemProgram,
 } from "@solana/web3.js";
-import { NextApiRequest, NextApiResponse } from "next";
 import { Pool } from "pg";
-import {
-  BAD_REQUEST,
-  HOUR,
-  HOURS,
-  INTERNAL_SERVER_ERROR,
-  OK,
-  TOO_MANY_REQUESTS,
-} from "@/lib/constants";
+import { AIRDROP_LIMITS } from "@/lib/constants";
 import { checkCloudflare } from "@/lib/cloudflare";
 import { getKeypairFromEnvironment } from "@solana-developers/helpers";
 
 const pgClient = new Pool({
   connectionString: process.env.POSTGRES_STRING as string,
 });
-
-// Eg if AIRDROPS_LIMIT_TOTAL is 2, and AIRDROPS_LIMIT_HOURS is 1,
-// then a user can only get 2 airdrops per 1 hour.
-const AIRDROPS_LIMIT_TOTAL = 2;
-const AIRDROPS_LIMIT_HOURS = 1;
-
-const MAX_SOL_AMOUNT = 5;
 
 export const dynamic = "force-dynamic"; // defaults to auto
 
@@ -92,7 +82,7 @@ export async function POST(req: Request) {
       throw Error("Missing SOL amount");
     }
 
-    if (amount > MAX_SOL_AMOUNT) {
+    if (amount > AIRDROP_LIMITS.default.maxAmountPerRequest) {
       throw Error("Requested SOL amount too large");
     }
 
@@ -153,7 +143,9 @@ export async function POST(req: Request) {
           errorMessage = err.message;
         }
 
-        throw Error(errorMessage);
+        return new Response(errorMessage, {
+          status: 429, // too many requests
+        });
       }
     }
 
@@ -161,7 +153,6 @@ export async function POST(req: Request) {
       network == "testnet"
         ? "https://api.testnet.solana.com"
         : process.env.RPC_URL ?? "https://api.devnet.solana.com";
-    console.log("RPC url:", rpc_url);
 
     const connection = new Connection(rpc_url, "confirmed");
 
@@ -169,7 +160,9 @@ export async function POST(req: Request) {
     try {
       blockhash = (await connection.getLatestBlockhash()).blockhash;
     } catch (err) {
-      throw Error("Unable to get latest blockhash");
+      return new Response("Unable to get latest blockhash", {
+        status: 500, // internal server error
+      });
     }
 
     const transaction = new Transaction().add(
@@ -200,12 +193,12 @@ export async function POST(req: Request) {
           signature,
         }),
         {
-          status: 200,
+          status: 200, // success
         },
       );
     } catch (error) {
-      console.log(error);
-      console.error("Faucet is empty. Please refill");
+      console.error("[TRANSACTION FAILED]");
+      console.error(error);
       throw Error("Faucet is empty, ping @solana_devs on Twitter");
     }
 
@@ -224,7 +217,7 @@ export async function POST(req: Request) {
     }
 
     return new Response(JSON.stringify({ error: errorMessage }), {
-      status: 400,
+      status: 400, // bad request
     });
   }
 }
@@ -239,7 +232,8 @@ const getOrCreateAndVerifyDatabaseEntry = async (key: string) => {
     "INSERT INTO rate_limits (key, timestamps) VALUES ($1, $2);";
   const updateQuery = "UPDATE rate_limits SET timestamps = $2 WHERE key = $1;";
 
-  const timeAgo = Date.now() - AIRDROPS_LIMIT_HOURS * HOURS;
+  const timeAgo =
+    Date.now() - AIRDROP_LIMITS.default.coveredHours * (1 * 60 * 1000);
 
   const queryResult = await pgClient.query(entryQuery, [key]);
   const rows = queryResult.rows as Array<Row>;
@@ -251,11 +245,12 @@ const getOrCreateAndVerifyDatabaseEntry = async (key: string) => {
 
     const isExcessiveUsage =
       timestamps.filter((timestamp: number) => timestamp > timeAgo).length >=
-      AIRDROPS_LIMIT_TOTAL;
+      AIRDROP_LIMITS.default.allowedRequests;
 
     if (isExcessiveUsage) {
       throw Error(
-        `You have exceeded the ${AIRDROPS_LIMIT_TOTAL} airdrops limit in the past ${AIRDROPS_LIMIT_HOURS} hour(s)`,
+        `You have exceeded the ${AIRDROP_LIMITS.default.allowedRequests} airdrops limit ` +
+          `in the past ${AIRDROP_LIMITS.default.coveredHours} hour(s)`,
       );
     }
 
