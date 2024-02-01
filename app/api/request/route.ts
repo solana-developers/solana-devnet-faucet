@@ -14,10 +14,11 @@ import {
   SystemProgram,
 } from "@solana/web3.js";
 import { Pool } from "pg";
-import { AIRDROP_LIMITS } from "@/lib/constants";
 import { checkCloudflare } from "@/lib/cloudflare";
 import { getKeypairFromEnvironment } from "@solana-developers/helpers";
 import { withOptionalUserSession } from "@/lib/auth";
+import { AirdropRateLimit } from "@/lib/constants";
+import { getAirdropRateLimitForSession } from "@/lib/utils";
 
 const pgClient = new Pool({
   connectionString: process.env.POSTGRES_STRING as string,
@@ -63,6 +64,9 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
     console.log("ip", ip);
     console.log("network", network);
 
+    // get the desired rate limit for the current requestor
+    const rateLimit = await getAirdropRateLimitForSession(session);
+
     // validate the user provided wallet address is a valid solana wallet address
     let userWallet: PublicKey;
     try {
@@ -84,7 +88,7 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
       throw Error("Missing SOL amount");
     }
 
-    if (amount > AIRDROP_LIMITS.default.maxAmountPerRequest) {
+    if (amount > rateLimit.maxAmountPerRequest) {
       throw Error("Requested SOL amount too large");
     }
 
@@ -126,10 +130,10 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
         // if one throws an error, the requestor is rate limited
         await Promise.all([
           // check for rate limits on the requestors ip address
-          getOrCreateAndVerifyDatabaseEntry(ipAddressWithoutDots),
+          getOrCreateAndVerifyDatabaseEntry(ipAddressWithoutDots, rateLimit),
 
           // check for rate limits on the requestors wallet address
-          getOrCreateAndVerifyDatabaseEntry(userWallet.toBase58()),
+          getOrCreateAndVerifyDatabaseEntry(userWallet.toBase58(), rateLimit),
         ]);
 
         /**
@@ -228,14 +232,16 @@ interface Row {
   timestamps: Array<number>;
 }
 
-const getOrCreateAndVerifyDatabaseEntry = async (key: string) => {
+const getOrCreateAndVerifyDatabaseEntry = async (
+  key: string,
+  rateLimit: AirdropRateLimit,
+) => {
   const entryQuery = "SELECT * FROM rate_limits WHERE key = $1;";
   const insertQuery =
     "INSERT INTO rate_limits (key, timestamps) VALUES ($1, $2);";
   const updateQuery = "UPDATE rate_limits SET timestamps = $2 WHERE key = $1;";
 
-  const timeAgo =
-    Date.now() - AIRDROP_LIMITS.default.coveredHours * (1 * 60 * 1000);
+  const timeAgo = Date.now() - rateLimit.coveredHours * (1 * 60 * 1000);
 
   const queryResult = await pgClient.query(entryQuery, [key]);
   const rows = queryResult.rows as Array<Row>;
@@ -247,12 +253,12 @@ const getOrCreateAndVerifyDatabaseEntry = async (key: string) => {
 
     const isExcessiveUsage =
       timestamps.filter((timestamp: number) => timestamp > timeAgo).length >=
-      AIRDROP_LIMITS.default.allowedRequests;
+      rateLimit.allowedRequests;
 
     if (isExcessiveUsage) {
       throw Error(
-        `You have exceeded the ${AIRDROP_LIMITS.default.allowedRequests} airdrops limit ` +
-          `in the past ${AIRDROP_LIMITS.default.coveredHours} hour(s)`,
+        `You have exceeded the ${rateLimit.allowedRequests} airdrops limit ` +
+          `in the past ${rateLimit.coveredHours} hour(s)`,
       );
     }
 

@@ -19,7 +19,7 @@ export const SITE = {
  *    + each airdrop could be up to `10` SOL each
  *    + for a total of `40` SOL per hour max
  */
-type AirdropLimit = {
+export type AirdropRateLimit = {
   /** number of previous hours covered by the rate limit, in a rolling period */
   coveredHours: number;
   /** max number of requests to allow per `coveredHours` time period */
@@ -38,7 +38,7 @@ export type AirdropLimitKeys = "default" | "github";
  * (including the base and elevated)
  */
 export const AIRDROP_LIMITS: {
-  [key in AirdropLimitKeys]: AirdropLimit;
+  [key in AirdropLimitKeys]: AirdropRateLimit;
 } = {
   default: {
     coveredHours: 1,
