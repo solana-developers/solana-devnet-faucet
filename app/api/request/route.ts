@@ -17,6 +17,7 @@ import { Pool } from "pg";
 import { AIRDROP_LIMITS } from "@/lib/constants";
 import { checkCloudflare } from "@/lib/cloudflare";
 import { getKeypairFromEnvironment } from "@solana-developers/helpers";
+import { withOptionalUserSession } from "@/lib/auth";
 
 const pgClient = new Pool({
   connectionString: process.env.POSTGRES_STRING as string,
@@ -27,7 +28,8 @@ export const dynamic = "force-dynamic"; // defaults to auto
 /**
  * Define the handler function for POST requests to this endpoint
  */
-export async function POST(req: Request) {
+
+export const POST = withOptionalUserSession(async ({ req, session }) => {
   try {
     // load the desired keypair from the server's ENV
     let serverKeypair: Keypair;
@@ -99,7 +101,7 @@ export async function POST(req: Request) {
         throw Error("Invalid CAPTCHA");
       }
     } else {
-      console.warn("SKIP CLOUDFLARE CHECK IN DEVELOPMENT MODE");
+      console.warn("SKIP CLOUDFLARE CHECK IN DEVELOPMENT MODE ON LOCALHOST");
     }
 
     // load the ip address whitelist from the env
@@ -216,11 +218,11 @@ export async function POST(req: Request) {
       errorMessage = err.message;
     }
 
-    return new Response(JSON.stringify({ error: errorMessage }), {
+    return new Response(errorMessage, {
       status: 400, // bad request
     });
   }
-}
+});
 
 interface Row {
   timestamps: Array<number>;

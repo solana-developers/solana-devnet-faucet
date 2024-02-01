@@ -109,16 +109,16 @@ export const AirdropForm = ({ className }: AirdropFormProps) => {
           }),
         })
           .then(async res => {
-            const data = await res.json();
-
-            if (!res.ok) throw data?.error || "Airdrop failed";
-
-            toaster.toast({
-              title: "Success!",
-              description: "Airdrop was successful.",
-            });
+            if (res.ok) {
+              return toaster.toast({
+                title: "Success!",
+                description: "Airdrop was successful.",
+              });
+            } else throw await res.text();
           })
           .catch(err => {
+            console.error(err);
+
             let errorMessage = "Airdrop request failed";
 
             if (typeof err == "string") errorMessage = err;
