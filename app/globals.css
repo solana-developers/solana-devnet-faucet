@@ -48,3 +48,22 @@ input[type="number"] {
     @apply border-border;
   }
 }
+
+select {
+  @apply block w-full px-3 py-2 text-sm border rounded-md cursor-pointer;
+  @apply hover:bg-accent hover:text-accent-foreground;
+  @apply border-input bg-background ring-offset-background;
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+}
+
+input {
+  @apply flex w-full h-10 px-3 py-2 text-sm border rounded-md;
+  @apply placeholder:text-muted-foreground border-input bg-background ring-offset-background;
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  @apply file:border-0 file:bg-transparent file:text-sm file:font-medium;
+}
+
+input:disabled,
+select:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}

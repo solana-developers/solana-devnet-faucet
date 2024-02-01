@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Coins } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -29,7 +28,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/components/ui/use-toast";
-import { Dropdown } from "@/components/ui/dropdown";
 
 import Image from "next/image";
 import svgLoader from "@/public/svgLoader.svg";
@@ -184,19 +182,23 @@ export const AirdropForm = ({ className }: AirdropFormProps) => {
             <div className="flex items-center justify-between gap-3">
               <span>Request Airdrop</span>
 
-              <Dropdown
+              <select
                 value={network}
                 onChange={handleDropdownChange}
                 className="w-min"
                 disabled={loading}
-              />
+              >
+                <option value="devnet">devnet</option>
+                <option value="testnet">testnet</option>
+              </select>
             </div>
           </CardTitle>
           <CardDescription>Maximum of 2 requests per hour.</CardDescription>
         </CardHeader>
 
         <CardContent className="flex flex-row space-x-2">
-          <Input
+          <input
+            type="text"
             placeholder="Wallet Address"
             onChange={handleWalletChange}
             value={walletAddress}
