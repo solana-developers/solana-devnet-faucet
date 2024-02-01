@@ -36,33 +36,37 @@ export default function Home() {
     return Array.from(keys);
   }, [chartData]);
 
-  useEffect(() => {
-    const fetchBalances = async () => {
-      const res = await fetch("/api/getbalances");
-      const data = await res.json();
-      const results = data.results as Balance[];
+  useEffect(
+    () => {
+      const fetchBalances = async () => {
+        const res = await fetch("/api/getbalances");
+        const data = await res.json();
+        const results = data.results as Balance[];
 
-      const dataMap: { [key: string]: ChartData } = {};
+        const dataMap: { [key: string]: ChartData } = {};
 
-      console.log("results", results);
+        console.log("results", results);
 
-      results.forEach(r => {
-        if (!dataMap[r.date]) {
-          dataMap[r.date] = { name: new Date(r.date).toLocaleDateString() };
-        }
+        results.forEach(r => {
+          if (!dataMap[r.date]) {
+            dataMap[r.date] = { name: new Date(r.date).toLocaleDateString() };
+          }
 
-        dataMap[r.date][r.account] = r.balance;
-      });
+          dataMap[r.date][r.account] = r.balance;
+        });
 
-      const dataArray = Object.values(dataMap);
+        const dataArray = Object.values(dataMap);
 
-      setChartData(dataArray);
-      console.log(dataArray, "DATA ARRAY");
-    };
+        setChartData(dataArray);
+        console.log(dataArray, "DATA ARRAY");
+      };
 
-    console.log("ALL KEYS:", allKeys);
-    fetchBalances();
-  }, [allKeys]);
+      console.log("ALL KEYS:", allKeys);
+      fetchBalances();
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   return (
     <div className="p-8 mx-auto space-y-4">
