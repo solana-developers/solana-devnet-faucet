@@ -14,7 +14,11 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.url),
   title: "Solana Devnet Faucet - Airdrop SOL",
-  description: "Get a SOL airdrop from this public Solana Devnet Faucet.",
+  description:
+    "Get a SOL airdrop from this public Solana Faucet, on devnet or testnet.",
+  openGraph: {
+    images: "/social-image.png?86rtf",
+  },
 };
 
 export default function RootLayout({
