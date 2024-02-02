@@ -36,7 +36,7 @@ declare namespace NodeJS {
 
     // GITHUB_ID: string;
     GITHUB_CLIENT_ID: string;
-    GITHUB_SECRET: string;
+    GITHUB_CLIENT_SECRET: string;
     // GITHUB_ACCESS_TOKEN: string;
 
     // TWITTER_CLIENT_ID: string;

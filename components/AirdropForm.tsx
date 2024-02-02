@@ -31,12 +31,14 @@ import { useToast } from "@/components/ui/use-toast";
 
 import Image from "next/image";
 import svgLoader from "@/public/svgLoader.svg";
+import { AirdropRateLimit } from "@/lib/constants";
 
 type AirdropFormProps = {
   className?: string;
+  rateLimit: AirdropRateLimit;
 };
 
-export const AirdropForm = ({ className }: AirdropFormProps) => {
+export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
   const toaster = useToast();
   const amountOptions = [0.5, 1, 2.5, 5];
   const [loading, setLoading] = useState<boolean>(false);
@@ -193,7 +195,12 @@ export const AirdropForm = ({ className }: AirdropFormProps) => {
               </select>
             </div>
           </CardTitle>
-          <CardDescription>Maximum of 2 requests per hour.</CardDescription>
+          <CardDescription>
+            Maximum of {rateLimit.allowedRequests} requests{" "}
+            {rateLimit.coveredHours == 1
+              ? "per hour"
+              : `every ${rateLimit.coveredHours} hours`}
+          </CardDescription>
         </CardHeader>
 
         <CardContent className="flex flex-row space-x-2">

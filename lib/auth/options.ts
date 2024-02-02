@@ -10,7 +10,7 @@ export const authOptions: NextAuthOptions = {
   providers: [
     Github({
       clientId: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_SECRET,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
     }),
     // Twitter({
     //   clientId: process.env.TWITTER_CLIENT_ID,
