@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   description:
     "Get a SOL airdrop from this public Solana Faucet, on devnet or testnet.",
   openGraph: {
-    images: "/social-image.png?86rtf",
+    images: "/social-image.jpg?987ygh",
   },
 };
 
