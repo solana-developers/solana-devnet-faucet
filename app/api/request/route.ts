@@ -18,7 +18,10 @@ import { checkCloudflare } from "@/lib/cloudflare";
 import { getKeypairFromEnvironment } from "@solana-developers/helpers";
 import { withOptionalUserSession } from "@/lib/auth";
 import { AirdropRateLimit } from "@/lib/constants";
-import { getAirdropRateLimitForSession } from "@/lib/utils";
+import {
+  getAirdropRateLimitForSession,
+  isAuthorizedToBypass,
+} from "@/lib/utils";
 
 const pgClient = new Pool({
   connectionString: process.env.POSTGRES_STRING as string,
@@ -39,6 +42,13 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
     } catch (err) {
       throw Error("Internal error. No faucet keypair found");
     }
+
+    const authToken = (req.headers.get("authorization") || "")
+      .split(/^Bearer:?/gi)
+      .at(1)
+      ?.trim();
+
+    console.log("authToken:", authToken);
 
     // Annoyingly, req.headers["x-forwarded-for"] can be a string or an array of strings
     // Let's just make it an array of strings
@@ -97,61 +107,64 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
       throw Error("Could not determine IP");
     }
 
-    // skip the cloudflare check when working on localhost
-    if (process.env.NODE_ENV != "development" && ip != "::1") {
-      const isCloudflareApproved = await checkCloudflare(cloudflareCallback);
+    // enable the some `authTokens`
+    if (!isAuthorizedToBypass(authToken)) {
+      // skip the cloudflare check when working on localhost
+      if (process.env.NODE_ENV != "development" && ip != "::1") {
+        const isCloudflareApproved = await checkCloudflare(cloudflareCallback);
 
-      if (!isCloudflareApproved) {
-        throw Error("Invalid CAPTCHA");
-      }
-    } else {
-      console.warn("SKIP CLOUDFLARE CHECK IN DEVELOPMENT MODE ON LOCALHOST");
-    }
-
-    // load the ip address whitelist from the env
-    const IP_ALLOW_LIST: Array<string> = JSON.parse(
-      process.env.IP_ALLOW_LIST || "[]",
-    );
-
-    // attempt to rate limit a request (for non-whitelisted ip's)
-    if (!IP_ALLOW_LIST?.includes(ip)) {
-      let ipAddressWithoutDots;
-
-      if (ip.includes(":")) {
-        // IPv6 address
-        ipAddressWithoutDots = ip.replace(/:/g, "");
+        if (!isCloudflareApproved) {
+          throw Error("Invalid CAPTCHA");
+        }
       } else {
-        // IPv4 address
-        ipAddressWithoutDots = ip.replace(/\./g, "");
+        console.warn("SKIP CLOUDFLARE CHECK IN DEVELOPMENT MODE ON LOCALHOST");
       }
 
-      try {
-        // perform all database rate limit checks at the same time
-        // if one throws an error, the requestor is rate limited
-        await Promise.all([
-          // check for rate limits on the requestors ip address
-          getOrCreateAndVerifyDatabaseEntry(ipAddressWithoutDots, rateLimit),
+      // load the ip address whitelist from the env
+      const IP_ALLOW_LIST: Array<string> = JSON.parse(
+        process.env.IP_ALLOW_LIST || "[]",
+      );
 
-          // check for rate limits on the requestors wallet address
-          getOrCreateAndVerifyDatabaseEntry(userWallet.toBase58(), rateLimit),
-        ]);
+      // attempt to rate limit a request (for non-whitelisted ip's)
+      if (!IP_ALLOW_LIST?.includes(ip)) {
+        let ipAddressWithoutDots;
 
-        /**
-         * when here, we assume the request is not rate limited
-         * since none of the above Promises will have throw an error
-         */
-      } catch (err) {
-        // set the default error message
-        let errorMessage = "Rate limit exceeded";
-
-        // handle custom error and their messages
-        if (err instanceof Error) {
-          errorMessage = err.message;
+        if (ip.includes(":")) {
+          // IPv6 address
+          ipAddressWithoutDots = ip.replace(/:/g, "");
+        } else {
+          // IPv4 address
+          ipAddressWithoutDots = ip.replace(/\./g, "");
         }
 
-        return new Response(errorMessage, {
-          status: 429, // too many requests
-        });
+        try {
+          // perform all database rate limit checks at the same time
+          // if one throws an error, the requestor is rate limited
+          await Promise.all([
+            // check for rate limits on the requestors ip address
+            getOrCreateAndVerifyDatabaseEntry(ipAddressWithoutDots, rateLimit),
+
+            // check for rate limits on the requestors wallet address
+            getOrCreateAndVerifyDatabaseEntry(userWallet.toBase58(), rateLimit),
+          ]);
+
+          /**
+           * when here, we assume the request is not rate limited
+           * since none of the above Promises will have throw an error
+           */
+        } catch (err) {
+          // set the default error message
+          let errorMessage = "Rate limit exceeded";
+
+          // handle custom error and their messages
+          if (err instanceof Error) {
+            errorMessage = err.message;
+          }
+
+          return new Response(errorMessage, {
+            status: 429, // too many requests
+          });
+        }
       }
     }
 
