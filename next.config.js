@@ -6,7 +6,7 @@ module.exports = {
         // matching all API routes
         source: "/api/(.*)",
         headers: [
-          { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "Access-Control-Allow-Origin", value: "https://solplay.de" },
           // Allows for specific methods accepted
           {
             key: "Access-Control-Allow-Methods",
