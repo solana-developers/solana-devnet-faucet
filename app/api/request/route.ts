@@ -29,6 +29,10 @@ const pgClient = new Pool({
 
 export const dynamic = "force-dynamic"; // defaults to auto
 
+export const GET = () => {
+  return new Response("Nothing to see here");
+};
+
 /**
  * Define the handler function for POST requests to this endpoint
  */
