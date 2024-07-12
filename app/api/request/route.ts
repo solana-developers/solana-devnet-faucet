@@ -75,9 +75,6 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
       cloudflareCallback,
     } = await req.json();
 
-    console.log("ip", ip);
-    console.log("network", network);
-
     // get the desired rate limit for the current requestor
     const rateLimit = await getAirdropRateLimitForSession(session);
 
@@ -144,13 +141,24 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
         try {
           // perform all database rate limit checks at the same time
           // if one throws an error, the requestor is rate limited
-          await Promise.all([
-            // check for rate limits on the requestors ip address
+          const [ipLimitResult, walletLimitResult] = await Promise.all([
+            // Check for rate limits on the requestor's IP address
             getOrCreateAndVerifyDatabaseEntry(ipAddressWithoutDots, rateLimit),
 
-            // check for rate limits on the requestors wallet address
+            // Check for rate limits on the requestor's wallet address
             getOrCreateAndVerifyDatabaseEntry(userWallet.toBase58(), rateLimit),
           ]);
+
+          console.log(
+            `network: ${network} requested: ${amount} ipAddressWithoutDots: ${ipAddressWithoutDots} isWithinWalletLimit: ${walletLimitResult} isWithinIpLimit: ${ipLimitResult} wallet: ${walletAddress}`,
+          );
+
+          if (!walletLimitResult || !ipLimitResult) {
+            throw Error(
+              `You have exceeded the ${rateLimit.allowedRequests} airdrops limit ` +
+                `in the past ${rateLimit.coveredHours} hour(s)`,
+            );
+          }
 
           /**
            * when here, we assume the request is not rate limited
@@ -258,7 +266,7 @@ const getOrCreateAndVerifyDatabaseEntry = async (
     "INSERT INTO rate_limits (key, timestamps) VALUES ($1, $2);";
   const updateQuery = "UPDATE rate_limits SET timestamps = $2 WHERE key = $1;";
 
-  const timeAgo = Date.now() - rateLimit.coveredHours * (1 * 60 * 1000);
+  const timeAgo = Date.now() - rateLimit.coveredHours * (60 * 60 * 1000);
 
   const queryResult = await pgClient.query(entryQuery, [key]);
   const rows = queryResult.rows as Array<Row>;
@@ -273,10 +281,7 @@ const getOrCreateAndVerifyDatabaseEntry = async (
       rateLimit.allowedRequests;
 
     if (isExcessiveUsage) {
-      throw Error(
-        `You have exceeded the ${rateLimit.allowedRequests} airdrops limit ` +
-          `in the past ${rateLimit.coveredHours} hour(s)`,
-      );
+      return false;
     }
 
     timestamps.push(Date.now());
