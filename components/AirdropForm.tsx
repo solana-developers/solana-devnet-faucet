@@ -62,6 +62,10 @@ export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
     }
   };
 
+  const validateAmount = (value: number): boolean => {
+    return amountOptions.includes(value);
+  };
+
   const handleWalletChange = (event: ChangeEvent<HTMLInputElement>) => {
     const address = event.target.value;
     setWalletAddress(address);
@@ -144,6 +148,23 @@ export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
     },
     [toaster, network, walletAddress, amount],
   );
+
+  useEffect(() => {
+    // Extract the walletAddress and amount from the URL and pre set it
+    const urlParams = new URLSearchParams(window.location.search);
+    const addressFromUrl = urlParams.get("walletAddress");
+    const amountFromUrl = urlParams.get("amount");
+
+    if (addressFromUrl && validateWallet(addressFromUrl)) {
+      setWalletAddress(addressFromUrl);
+    }
+    if (amountFromUrl) {
+      const amountValue = parseFloat(amountFromUrl);
+      if (validateAmount(amountValue)) {
+        setAmount(amountValue);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     // console.log({
