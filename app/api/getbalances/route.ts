@@ -13,7 +13,7 @@ export const GET = async (_req: Request) => {
     });
 
     const result = await pgClient.query(
-      "SELECT account, balance, date FROM solana_balances WHERE date >= CURRENT_DATE - INTERVAL '1 month' ORDER BY date ",
+      "SELECT account, balance, date FROM faucet.solana_balances WHERE date >= CURRENT_DATE - INTERVAL '1 month' ORDER BY date ",
     );
 
     return new Response(

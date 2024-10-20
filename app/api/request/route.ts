@@ -261,10 +261,10 @@ const getOrCreateAndVerifyDatabaseEntry = async (
   key: string,
   rateLimit: AirdropRateLimit,
 ) => {
-  const entryQuery = "SELECT * FROM rate_limits WHERE key = $1;";
+  const entryQuery = "SELECT * FROM faucet.rate_limits WHERE key = $1;";
   const insertQuery =
-    "INSERT INTO rate_limits (key, timestamps) VALUES ($1, $2);";
-  const updateQuery = "UPDATE rate_limits SET timestamps = $2 WHERE key = $1;";
+    "INSERT INTO faucet.rate_limits (key, timestamps) VALUES ($1, $2);";
+  const updateQuery = "UPDATE faucet.rate_limits SET timestamps = $2 WHERE key = $1;";
 
   const timeAgo = Date.now() - rateLimit.coveredHours * (60 * 60 * 1000);
 

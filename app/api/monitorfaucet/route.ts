@@ -33,7 +33,7 @@ export const GET = async (_req: Request) => {
 
       // Insert the balance and current date into the database
       await pgClient.query(
-        "INSERT INTO solana_balances (account, balance, date) VALUES ($1, $2, $3)",
+        "INSERT INTO faucet.solana_balances (account, balance, date) VALUES ($1, $2, $3)",
         [account.toString(), balance, new Date()],
       );
     }
