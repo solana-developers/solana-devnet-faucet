@@ -9,11 +9,11 @@ export const GET = async (_req: Request) => {
   try {
     // connect to the database
     const pgClient = new Pool({
-      connectionString: process.env.POSTGRES_STRING,
+      connectionString: process.env.POSTGRES_STRING_SOLANA,
     });
 
     const result = await pgClient.query(
-      "SELECT account, balance, date FROM solana_balances WHERE date >= CURRENT_DATE - INTERVAL '1 month' ORDER BY date ",
+      "SELECT account, balance, date FROM faucet.solana_balances WHERE date >= CURRENT_DATE - INTERVAL '1 month' ORDER BY date ",
     );
 
     return new Response(
