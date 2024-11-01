@@ -24,7 +24,7 @@ import {
 } from "@/lib/utils";
 
 const pgClient = new Pool({
-  connectionString: process.env.POSTGRES_STRING as string,
+  connectionString: process.env.POSTGRES_STRING_SOLANA as string,
 });
 
 export const dynamic = "force-dynamic"; // defaults to auto

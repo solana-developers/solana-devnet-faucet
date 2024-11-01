@@ -10,7 +10,7 @@ export const GET = async (_req: Request) => {
   try {
     // connect to the database
     const pgClient = new Pool({
-      connectionString: process.env.POSTGRES_STRING,
+      connectionString: process.env.POSTGRES_STRING_SOLANA,
     });
 
     // connect to the desired solana rpc

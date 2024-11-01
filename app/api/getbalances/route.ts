@@ -9,7 +9,7 @@ export const GET = async (_req: Request) => {
   try {
     // connect to the database
     const pgClient = new Pool({
-      connectionString: process.env.POSTGRES_STRING,
+      connectionString: process.env.POSTGRES_STRING_SOLANA,
     });
 
     const result = await pgClient.query(
