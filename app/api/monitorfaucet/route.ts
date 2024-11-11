@@ -1,5 +1,5 @@
 import { LAMPORTS_PER_SOL, PublicKey, Connection } from "@solana/web3.js";
-import { Pool } from "pg";
+import { solanaBalancesAPI } from "@/lib/backend";
 
 export const dynamic = "force-dynamic"; // defaults to auto
 
@@ -8,11 +8,6 @@ export const dynamic = "force-dynamic"; // defaults to auto
  */
 export const GET = async (_req: Request) => {
   try {
-    // connect to the database
-    const pgClient = new Pool({
-      connectionString: process.env.POSTGRES_STRING_SOLANA,
-    });
-
     // connect to the desired solana rpc
     const connection = new Connection(
       process.env.RPC_URL ?? "https://api.devnet.solana.com",
@@ -31,11 +26,8 @@ export const GET = async (_req: Request) => {
 
       const balance = fetchedBalance / LAMPORTS_PER_SOL;
 
-      // Insert the balance and current date into the database
-      await pgClient.query(
-        "INSERT INTO faucet.solana_balances (account, balance, date) VALUES ($1, $2, $3)",
-        [account.toString(), balance, new Date()],
-      );
+      // Make an API call to store the balance
+      await solanaBalancesAPI.create(account.toString(), balance);
     }
 
     return new Response("Balances updated", {

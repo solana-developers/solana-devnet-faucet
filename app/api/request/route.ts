@@ -13,7 +13,6 @@ import {
   sendAndConfirmTransaction,
   SystemProgram,
 } from "@solana/web3.js";
-import { Pool } from "pg";
 import { checkCloudflare } from "@/lib/cloudflare";
 import { getKeypairFromEnvironment } from "@solana-developers/helpers";
 import { withOptionalUserSession } from "@/lib/auth";
@@ -22,10 +21,7 @@ import {
   getAirdropRateLimitForSession,
   isAuthorizedToBypass,
 } from "@/lib/utils";
-
-const pgClient = new Pool({
-  connectionString: process.env.POSTGRES_STRING_SOLANA as string,
-});
+import { rateLimitsAPI } from "@/lib/backend";
 
 export const dynamic = "force-dynamic"; // defaults to auto
 
@@ -261,20 +257,13 @@ const getOrCreateAndVerifyDatabaseEntry = async (
   key: string,
   rateLimit: AirdropRateLimit,
 ) => {
-  const entryQuery = "SELECT * FROM faucet.rate_limits WHERE key = $1;";
-  const insertQuery =
-    "INSERT INTO faucet.rate_limits (key, timestamps) VALUES ($1, $2);";
-  const updateQuery = "UPDATE faucet.rate_limits SET timestamps = $2 WHERE key = $1;";
-
   const timeAgo = Date.now() - rateLimit.coveredHours * (60 * 60 * 1000);
 
-  const queryResult = await pgClient.query(entryQuery, [key]);
-  const rows = queryResult.rows as Array<Row>;
+  // Fetch the rate limit entry
+  const rateLimitEntry = await rateLimitsAPI.getByKey(key);
 
-  // check and see if the current requestor has attempted an airdrop before
-  const entry = rows[0];
-  if (entry) {
-    const timestamps = entry.timestamps;
+  if (rateLimitEntry) {
+    const timestamps = rateLimitEntry.timestamps || [];
 
     const isExcessiveUsage =
       timestamps.filter((timestamp: number) => timestamp > timeAgo).length >=
@@ -287,13 +276,13 @@ const getOrCreateAndVerifyDatabaseEntry = async (
     timestamps.push(Date.now());
 
     // update the requestor's info to track perform future rate limit checks
-    await pgClient.query(updateQuery, [key, timestamps]).catch(err => {
+    await rateLimitsAPI.update(key, timestamps).catch(err => {
       console.error("[DB ERROR]", err);
       throw Error("Rate limit error occurred");
     });
   } else {
     // when no current `entry` exists, we will record the new requestor in the database
-    await pgClient.query(insertQuery, [key, [Date.now()]]).catch(err => {
+    await rateLimitsAPI.create(key, [Date.now()]).catch(err => {
       console.error("[DB ERROR]", err);
       throw Error("Rate limit error occurred");
     });
