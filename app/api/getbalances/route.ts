@@ -1,4 +1,4 @@
-import { Pool } from "pg";
+import { solanaBalancesAPI } from "@/lib/backend";
 
 export const dynamic = "force-dynamic"; // defaults to auto
 
@@ -7,21 +7,12 @@ export const dynamic = "force-dynamic"; // defaults to auto
  */
 export const GET = async (_req: Request) => {
   try {
-    // connect to the database
-    const pgClient = new Pool({
-      connectionString: process.env.POSTGRES_STRING_SOLANA,
+    // Use the backend API to fetch recent Solana balances
+    const recentBalances = await solanaBalancesAPI.getRecent();
+
+    return new Response(JSON.stringify({ results: recentBalances }), {
+      status: 200,
     });
-
-    const result = await pgClient.query(
-      "SELECT account, balance, date FROM faucet.solana_balances WHERE date >= CURRENT_DATE - INTERVAL '1 month' ORDER BY date ",
-    );
-
-    return new Response(
-      JSON.stringify({ results: result ? result.rows : null }),
-      {
-        status: 200,
-      },
-    );
   } catch (err) {
     // set the default error message
     let errorMessage = "An unknown error occurred";
