@@ -5,7 +5,6 @@ const BASE_URL = 'https://devnet-faucet-backend-dot-analytics-324114.de.r.appspo
 // Fetch service account token for authentication
 const getAccessToken = async (): Promise<string> => {
   if(process.env.BE_TOKEN !== undefined){
-    console.log("here", process.env.BE_TOKEN);
     return process.env.BE_TOKEN;
   }
 
