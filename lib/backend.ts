@@ -1,6 +1,6 @@
 import { GoogleAuth } from 'google-auth-library';
 
-const BASE_URL = 'https://devnet-faucet-backend-dot-analytics-324114.de.r.appspot.com/api/';
+const BASE_URL = 'https://devnet-faucet-backend-dot-analytics-324114.de.r.appspot.com/api';
 
 // Fetch service account token for authentication
 const getAccessToken = async (): Promise<string> => {
@@ -9,7 +9,6 @@ const getAccessToken = async (): Promise<string> => {
   }
 
   const key = process.env.BE_SERVICE_ACCOUNT_KEY as string;
-  console.log(key);
   const auth = new GoogleAuth({
     credentials: JSON.parse(key),
     scopes: [
@@ -27,7 +26,6 @@ const getAccessToken = async (): Promise<string> => {
 const fetchRequest = async (url: string, options: RequestInit = {}) => {
   try {
     const token = await getAccessToken(); // Get token for each request
-    console.log("here", token, "---", url);
     const response = await fetch(url, {
       ...options,
       headers: {
