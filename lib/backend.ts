@@ -21,6 +21,18 @@ const getAccessToken = async (): Promise<string> => {
   const tokenResponse = await client.getAccessToken();
   return tokenResponse.token as string;
 };
+const handleResponse = async (response: Response) => {
+  if (!response.ok) {
+    if (response.status === 404) {
+      // Handle 404: return an appropriate fallback
+      return {};
+    }
+    // Throw for other error codes
+    const error = await response.text();
+    throw new Error(`HTTP error ${response.status}: ${error}`);
+  }
+  return response.json();
+};
 
 // Utility function for making authenticated fetch requests
 const fetchRequest = async (url: string, options: RequestInit = {}) => {
@@ -34,13 +46,9 @@ const fetchRequest = async (url: string, options: RequestInit = {}) => {
       },
     });
 
-    if (!response.ok) {
-      throw new Error(`Error: ${response.status} - ${response.statusText}`);
-    }
-
-    return await response.json();
+    return await handleResponse(response);
   } catch (error) {
-    console.error(error);
+    console.error(`Error during fetch request to ${url}: ${error}`);
     throw error;
   }
 };
