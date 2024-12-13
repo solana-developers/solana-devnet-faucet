@@ -262,7 +262,7 @@ const getOrCreateAndVerifyDatabaseEntry = async (
   // Fetch the rate limit entry
   const rateLimitEntry = await rateLimitsAPI.getByKey(key);
 
-  if (rateLimitEntry) {
+  if (rateLimitEntry && rateLimitEntry.key !== undefined) {
     const timestamps = rateLimitEntry.timestamps || [];
 
     const isExcessiveUsage =
