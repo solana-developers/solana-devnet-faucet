@@ -41,12 +41,12 @@ export const AIRDROP_LIMITS: {
   [key in AirdropLimitKeys]: AirdropRateLimit;
 } = {
   default: {
-    coveredHours: 1,
+    coveredHours: 2,
     allowedRequests: 2,
     maxAmountPerRequest: 5,
   },
   github: {
-    coveredHours: 1,
+    coveredHours: 2,
     allowedRequests: 2,
     maxAmountPerRequest: 10,
   },
