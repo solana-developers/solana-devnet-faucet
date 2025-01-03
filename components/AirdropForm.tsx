@@ -53,6 +53,10 @@ export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
   const [network, setSelectedNetwork] = useState("devnet");
   const [isFormValid, setIsFormValid] = useState(false);
 
+  if (rateLimit.maxAmountPerRequest > 5) {
+    amountOptions.push(rateLimit.maxAmountPerRequest);
+  }
+
   const validateWallet = (address: string): boolean => {
     try {
       new PublicKey(address);
@@ -176,7 +180,7 @@ export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
     setIsFormValid(
       walletAddress !== "" &&
         amount !== null &&
-        amount <= 5 &&
+        amount <= 10 &&
         errors.wallet === "" &&
         errors.amount === "",
     );
