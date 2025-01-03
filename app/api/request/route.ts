@@ -67,13 +67,15 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
     console.log("authToken:", authToken);
 
     // get the required data submitted from the client
-    const {
-      // comment for better diffs
-      walletAddress,
-      amount,
-      network,
-      cloudflareCallback,
-    } = await req.json();
+    const { walletAddress, amount, network, cloudflareCallback } =
+      await req.json();
+
+    // Temporary requirement: GitHub auth is required
+    if (!session?.user?.name) {
+      throw Error(
+        "GitHub authentication is temporarily required. Please sign in with GitHub to use the faucet.",
+      );
+    }
 
     // get the desired rate limit for the current requestor
     const rateLimit = await getAirdropRateLimitForSession(session);
