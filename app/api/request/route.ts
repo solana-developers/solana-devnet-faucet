@@ -40,6 +40,7 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
 
     // Get the real IP address from Cloudflare headers
     const ip =
+      headersList.get("cf-connecting-ipv6") ||
       headersList.get("cf-connecting-ip") ||
       (process.env.NODE_ENV === "development" ? "::1" : null);
 
