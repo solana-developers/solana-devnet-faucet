@@ -22,6 +22,7 @@ import {
   isAuthorizedToBypass,
 } from "@/lib/utils";
 import { rateLimitsAPI } from "@/lib/backend";
+import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic"; // defaults to auto
 
@@ -35,7 +36,22 @@ export const GET = () => {
 
 export const POST = withOptionalUserSession(async ({ req, session }) => {
   try {
-    // load the desired keypair from the server's ENV
+    const headersList = headers();
+
+    // Get the real IP address from Cloudflare headers
+    const ip =
+      headersList.get("cf-connecting-ipv6") ||
+      headersList.get("cf-connecting-ip") ||
+      (process.env.NODE_ENV === "development" ? "::1" : null);
+
+    console.log("ip: %s, headersList: %o", ip, headersList);
+
+    if (!ip) {
+      return new Response("Could not determine client IP address", {
+        status: 400,
+      });
+    }
+
     let serverKeypair: Keypair;
     try {
       serverKeypair = await getKeypairFromEnvironment("FAUCET_KEYPAIR");
@@ -49,18 +65,6 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
       ?.trim();
 
     console.log("authToken:", authToken);
-
-    // Annoyingly, req.headers["x-forwarded-for"] can be a string or an array of strings
-    // Let's just make it an array of strings
-    let forwardedForValueOrValues = req.headers.get("x-forwarded-for") || [];
-    let forwardedForValues: Array<string> = [];
-    if (Array.isArray(forwardedForValueOrValues)) {
-      forwardedForValues = forwardedForValueOrValues;
-    } else {
-      forwardedForValues = [forwardedForValueOrValues];
-    }
-
-    const ip = forwardedForValues[0] || null;
 
     // get the required data submitted from the client
     const {
