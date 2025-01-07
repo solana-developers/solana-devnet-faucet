@@ -25,6 +25,7 @@ import { rateLimitsAPI } from "@/lib/backend";
 import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic"; // defaults to auto
+const GITHUB_LOGIN_REQUIRED = true;
 
 export const GET = () => {
   return new Response("Nothing to see here");
@@ -70,10 +71,10 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
     const { walletAddress, amount, network, cloudflareCallback } =
       await req.json();
 
-    // Temporary requirement: GitHub auth is required
-    if (!session?.user?.name) {
+    // GitHub auth is required
+    if (GITHUB_LOGIN_REQUIRED && !session?.user?.githubUserId) {
       throw Error(
-        "GitHub authentication is temporarily required. Please sign in with GitHub to use the faucet.",
+        "GitHub authentication is required. Please sign in with GitHub to use the faucet.",
       );
     }
 
@@ -143,19 +144,22 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
         try {
           // perform all database rate limit checks at the same time
           // if one throws an error, the requestor is rate limited
-          const [ipLimitResult, walletLimitResult] = await Promise.all([
+          const [ipLimitResult, walletLimitResult, githubLimitResult] = await Promise.all([
             // Check for rate limits on the requestor's IP address
             getOrCreateAndVerifyDatabaseEntry(ipAddressWithoutDots, rateLimit),
 
             // Check for rate limits on the requestor's wallet address
             getOrCreateAndVerifyDatabaseEntry(userWallet.toBase58(), rateLimit),
+
+            // Check for rate limits on the requestor's Github account
+            GITHUB_LOGIN_REQUIRED ? getOrCreateAndVerifyDatabaseEntry(session!.user!.githubUserId!, rateLimit) : Promise.resolve(),
           ]);
 
           console.log(
             `network: ${network} requested: ${amount} ipAddressWithoutDots: ${ipAddressWithoutDots} isWithinWalletLimit: ${walletLimitResult} isWithinIpLimit: ${ipLimitResult} wallet: ${walletAddress}`,
           );
 
-          if (!walletLimitResult || !ipLimitResult) {
+          if (!walletLimitResult || !ipLimitResult || !githubLimitResult) {
             throw Error(
               `You have exceeded the ${rateLimit.allowedRequests} airdrops limit ` +
                 `in the past ${rateLimit.coveredHours} hour(s)`,
