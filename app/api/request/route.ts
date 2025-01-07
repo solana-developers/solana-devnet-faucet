@@ -156,7 +156,7 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
           ]);
 
           console.log(
-            `network: ${network} requested: ${amount} ipAddressWithoutDots: ${ipAddressWithoutDots} isWithinWalletLimit: ${walletLimitResult} isWithinIpLimit: ${ipLimitResult} wallet: ${walletAddress}`,
+            `network: ${network} requested: ${amount} ipAddressWithoutDots: ${ipAddressWithoutDots} isWithinWalletLimit: ${walletLimitResult} isWithinIpLimit: ${ipLimitResult} wallet: ${walletAddress} github: ${session!.user!.githubUserId!} isWithinGithubLimit: ${walletLimitResult}`,
           );
 
           if (!githubLimitResult || !walletLimitResult || !ipLimitResult) {
