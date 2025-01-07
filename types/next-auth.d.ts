@@ -13,6 +13,7 @@ declare module "next-auth" {
       username?: string;
       githubUsername?: string;
       githubUserId?: string;
+      createdAt?: string;
     };
   }
   /**

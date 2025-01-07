@@ -1,6 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import { GithubProfile } from "next-auth/providers/github";
-import Github from "next-auth/providers/github";
+import GitHubProvider from "next-auth/providers/github";
 import { SITE } from "@/lib/constants";
 
 const IS_VERCEL_DEPLOYMENT = !!process.env.VERCEL_URL;
@@ -8,9 +8,9 @@ const IS_VERCEL_DEPLOYMENT = !!process.env.VERCEL_URL;
 // define a list of accepted auth providers
 export const authOptions: NextAuthOptions = {
   providers: [
-    Github({
-      clientId: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    GitHubProvider({
+      clientId: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
     }),
     // Twitter({
     //   clientId: process.env.TWITTER_CLIENT_ID,
@@ -86,6 +86,7 @@ export const authOptions: NextAuthOptions = {
         token.githubUsername = githubProfile.login;
         token.githubUserId = githubProfile.id.toString();
         token.accessToken = account.access_token;
+        token.createdAt = githubProfile.created_at;
         if (!token.username) token.username = githubProfile.login;
       }
 
@@ -95,7 +96,7 @@ export const authOptions: NextAuthOptions = {
      * handler for all the session checking actions
      * note: we can return custom data here if desired
      */
-    session: async ({ session, token, user }) => {
+    session: async ({ session, token }) => {
       console.debug("[/api/auth]", "fetch session");
 
       // console.debug("[session]", session);
