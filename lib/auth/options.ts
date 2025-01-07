@@ -11,6 +11,12 @@ export const authOptions: NextAuthOptions = {
     GitHubProvider({
       clientId: process.env.GITHUB_CLIENT_ID!,
       clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+      profile(profile) {
+        return {
+          ...profile,
+          createdAt: profile.created_at,
+        };
+      },
     }),
     // Twitter({
     //   clientId: process.env.TWITTER_CLIENT_ID,
@@ -86,7 +92,7 @@ export const authOptions: NextAuthOptions = {
         token.githubUsername = githubProfile.login;
         token.githubUserId = githubProfile.id.toString();
         token.accessToken = account.access_token;
-        token.createdAt = githubProfile.created_at;
+        token.createdAt = githubProfile.createdAt;
         if (!token.username) token.username = githubProfile.login;
       }
 
