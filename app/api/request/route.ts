@@ -74,7 +74,7 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
     // GitHub auth is required
     if (GITHUB_LOGIN_REQUIRED && !session?.user?.githubUserId) {
       throw Error(
-        "GitHub authentication is required. Please sign in with GitHub to use the faucet.",
+        "GitHub authentication is required. Please sign in with GitHub to use the faucet..",
       );
     }
 
