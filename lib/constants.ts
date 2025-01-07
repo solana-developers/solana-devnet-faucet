@@ -48,6 +48,6 @@ export const AIRDROP_LIMITS: {
   github: {
     coveredHours: 8,
     allowedRequests: 2,
-    maxAmountPerRequest: 10,
+    maxAmountPerRequest: 5,
   },
 };
