@@ -144,19 +144,31 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
         try {
           // perform all database rate limit checks at the same time
           // if one throws an error, the requestor is rate limited
-          const [githubLimitResult, ipLimitResult, walletLimitResult, ] = await Promise.all([
-            // Check for rate limits on the requestor's Github account
-            GITHUB_LOGIN_REQUIRED ? getOrCreateAndVerifyDatabaseEntry(session!.user!.githubUserId!, rateLimit) : Promise.resolve(),
+          const [githubLimitResult, ipLimitResult, walletLimitResult] =
+            await Promise.all([
+              // Check for rate limits on the requestor's Github account
+              GITHUB_LOGIN_REQUIRED
+                ? getOrCreateAndVerifyDatabaseEntry(
+                    session!.user!.githubUserId!,
+                    rateLimit,
+                  )
+                : Promise.resolve(),
 
-            // Check for rate limits on the requestor's IP address
-            getOrCreateAndVerifyDatabaseEntry(ipAddressWithoutDots, rateLimit),
+              // Check for rate limits on the requestor's IP address
+              getOrCreateAndVerifyDatabaseEntry(
+                ipAddressWithoutDots,
+                rateLimit,
+              ),
 
-            // Check for rate limits on the requestor's wallet address
-            getOrCreateAndVerifyDatabaseEntry(userWallet.toBase58(), rateLimit),
-          ]);
+              // Check for rate limits on the requestor's wallet address
+              getOrCreateAndVerifyDatabaseEntry(
+                userWallet.toBase58(),
+                rateLimit,
+              ),
+            ]);
 
           console.log(
-            `network: ${network} requested: ${amount} ipAddressWithoutDots: ${ipAddressWithoutDots} isWithinWalletLimit: ${walletLimitResult} isWithinIpLimit: ${ipLimitResult} wallet: ${walletAddress} github: ${session!.user!.githubUserId!} isWithinGithubLimit: ${walletLimitResult}`,
+            `network: ${network} requested: ${amount} ipAddressWithoutDots: ${ipAddressWithoutDots} isWithinWalletLimit: ${walletLimitResult} isWithinIpLimit: ${ipLimitResult} wallet: ${walletAddress} github: ${session!.user!.githubUserId!} isWithinGithubLimit: ${githubLimitResult}`,
           );
 
           if (!githubLimitResult || !walletLimitResult || !ipLimitResult) {
