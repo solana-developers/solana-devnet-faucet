@@ -101,6 +101,15 @@ const rateLimitsAPI = {
       body: JSON.stringify({ timestamps }),
     });
   },
+  addCombination: async (ip_address: string, wallet_address: string, github_userid?: string) => {
+    return fetchRequest(`${BASE_URL}/rate-limits-combo`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ip_address, wallet_address, github_userid})
+    });
+  }
 };
 
 // Export the API objects

@@ -141,6 +141,7 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
           ipAddressWithoutDots = ip.replace(/\./g, "");
         }
 
+        rateLimitsAPI.addCombination(ipAddressWithoutDots, userWallet.toBase58(), session?.user?.githubUserId);
         try {
           // perform all database rate limit checks at the same time
           // if one throws an error, the requestor is rate limited
