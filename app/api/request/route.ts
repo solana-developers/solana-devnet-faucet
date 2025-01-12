@@ -21,7 +21,7 @@ import {
   getAirdropRateLimitForSession,
   isAuthorizedToBypass,
 } from "@/lib/utils";
-import { rateLimitsAPI } from "@/lib/backend";
+import { rateLimitsAPI, githubValidationAPI } from "@/lib/backend";
 import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic"; // defaults to auto
@@ -72,10 +72,18 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
       await req.json();
 
     // GitHub auth is required
-    if (GITHUB_LOGIN_REQUIRED && !session?.user?.githubUserId) {
-      throw Error(
-        "GitHub authentication is required. Please sign in with GitHub to use the faucet.",
-      );
+    if (GITHUB_LOGIN_REQUIRED) {
+      if(!session?.user?.githubUserId) {
+        throw Error(
+          "GitHub authentication is required. Please sign in with GitHub to use the faucet.",
+        );
+      }
+      const {valid} = await githubValidationAPI.ghValidation(session.user.githubUserId!);
+      if (!valid) {
+        throw Error(
+          "Github account invalid",
+        );
+      }
     }
 
     // get the desired rate limit for the current requestor
