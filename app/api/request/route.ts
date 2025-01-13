@@ -81,7 +81,7 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
       const {valid} = await githubValidationAPI.ghValidation(session.user.githubUserId!);
       if (!valid) {
         throw Error(
-          "Github account invalid",
+          "Github account too new",
         );
       }
     }
