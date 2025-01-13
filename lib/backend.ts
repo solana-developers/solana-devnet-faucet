@@ -111,8 +111,20 @@ const rateLimitsAPI = {
   }
 };
 
+// Github Validation API
+const githubValidationAPI = {
+  ghValidation: async (userId: string) => {
+    return fetchRequest(`${BASE_URL}/gh-validation/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  },
+};
+
 // Export the API objects
-export { solanaBalancesAPI, rateLimitsAPI };
+export { solanaBalancesAPI, rateLimitsAPI, githubValidationAPI };
 
 
 
