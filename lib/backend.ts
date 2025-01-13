@@ -22,11 +22,10 @@ const getAccessToken = async (): Promise<string> => {
   return tokenResponse.token as string;
 };
 const handleResponse = async (response: Response) => {
+  if (response.status === 404 || response.status === 204) {
+    return {};
+  }
   if (!response.ok) {
-    if (response.status === 404) {
-      // Handle 404: return an appropriate fallback
-      return {};
-    }
     // Throw for other error codes
     const error = await response.text();
     throw new Error(`HTTP error ${response.status}: ${error}`);
