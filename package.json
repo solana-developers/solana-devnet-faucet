@@ -13,7 +13,7 @@
     "@radix-ui/react-popover": "^1.0.6",
     "@radix-ui/react-slot": "^1.0.2",
     "@radix-ui/react-toast": "^1.1.4",
-    "@solana-developers/helpers": "^1.5.1",
+    "@solana-developers/helpers": "^2.7.0",
     "@solana/web3.js": "^1.78.0",
     "@types/node": "20.4.1",
     "@types/react": "18.2.14",

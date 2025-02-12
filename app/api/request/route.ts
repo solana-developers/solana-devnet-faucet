@@ -14,7 +14,10 @@ import {
   SystemProgram,
 } from "@solana/web3.js";
 import { checkCloudflare } from "@/lib/cloudflare";
-import { getKeypairFromEnvironment } from "@solana-developers/helpers";
+import {
+  getKeypairFromEnvironment,
+  sendTransaction,
+} from "@solana-developers/helpers";
 import { withOptionalUserSession } from "@/lib/auth";
 import { AirdropRateLimit } from "@/lib/constants";
 import {
@@ -73,16 +76,16 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
 
     // GitHub auth is required
     if (GITHUB_LOGIN_REQUIRED) {
-      if(!session?.user?.githubUserId) {
+      if (!session?.user?.githubUserId) {
         throw Error(
           "GitHub authentication is required. Please sign in with GitHub to use the faucet.",
         );
       }
-      const {valid} = await githubValidationAPI.ghValidation(session.user.githubUserId!);
+      const { valid } = await githubValidationAPI.ghValidation(
+        session.user.githubUserId!,
+      );
       if (!valid) {
-        throw Error(
-          "Github account too new",
-        );
+        throw Error("Github account too new");
       }
     }
 
@@ -149,7 +152,11 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
           ipAddressWithoutDots = ip.replace(/\./g, "");
         }
 
-        rateLimitsAPI.addCombination(ipAddressWithoutDots, userWallet.toBase58(), session?.user?.githubUserId);
+        rateLimitsAPI.addCombination(
+          ipAddressWithoutDots,
+          userWallet.toBase58(),
+          session?.user?.githubUserId,
+        );
         try {
           // perform all database rate limit checks at the same time
           // if one throws an error, the requestor is rate limited
@@ -179,7 +186,10 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
           console.log("session:", session);
 
           console.log(
-            `network: ${network} requested: ${amount} ipAddressWithoutDots: ${ipAddressWithoutDots} isWithinWalletLimit: ${walletLimitResult} isWithinIpLimit: ${ipLimitResult} wallet: ${walletAddress} github: ${session!.user!.githubUserId!} isWithinGithubLimit: ${githubLimitResult} githubName: ${session!.user!.name!} githubCreatedAt: ${session!.user!.createdAt}`,
+            `network: ${network} requested: ${amount} ipAddressWithoutDots: ${ipAddressWithoutDots} isWithinWalletLimit: ${walletLimitResult} isWithinIpLimit: ${ipLimitResult} wallet: ${walletAddress} github: ${session!
+              .user!
+              .githubUserId!} isWithinGithubLimit: ${githubLimitResult} githubName: ${session!
+              .user!.name!} githubCreatedAt: ${session!.user!.createdAt}`,
           );
 
           if (!githubLimitResult || !walletLimitResult || !ipLimitResult) {
@@ -216,15 +226,6 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
 
     const connection = new Connection(rpc_url, "confirmed");
 
-    let blockhash: string;
-    try {
-      blockhash = (await connection.getLatestBlockhash()).blockhash;
-    } catch (err) {
-      return new Response("Unable to get latest blockhash", {
-        status: 500, // internal server error
-      });
-    }
-
     const transaction = new Transaction().add(
       SystemProgram.transfer({
         fromPubkey: serverKeypair.publicKey,
@@ -232,18 +233,19 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
         lamports: amount * LAMPORTS_PER_SOL,
       }),
     );
-    transaction.recentBlockhash = blockhash;
 
     try {
       // send and confirm the transaction
-      const signature = await sendAndConfirmTransaction(
+      const signature = await sendTransaction(
         connection,
         transaction,
         [serverKeypair],
-        {
-          commitment: "confirmed",
-        },
+        1000000,
       );
+
+      if (!signature) {
+        throw Error("Transaction failed");
+      }
 
       // finally return a success 200 message when the transaction was successful
       return new Response(
@@ -281,10 +283,6 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
     });
   }
 });
-
-interface Row {
-  timestamps: Array<number>;
-}
 
 const getOrCreateAndVerifyDatabaseEntry = async (
   key: string,
