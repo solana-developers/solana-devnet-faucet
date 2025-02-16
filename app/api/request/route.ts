@@ -10,7 +10,6 @@ import {
   PublicKey,
   Connection,
   Transaction,
-  sendAndConfirmTransaction,
   SystemProgram,
 } from "@solana/web3.js";
 import { checkCloudflare } from "@/lib/cloudflare";
@@ -19,12 +18,12 @@ import {
   sendTransaction,
 } from "@solana-developers/helpers";
 import { withOptionalUserSession } from "@/lib/auth";
-import { AirdropRateLimit } from "@/lib/constants";
+import { AirdropRateLimit, FaucetTransaction } from "@/lib/constants";
 import {
   getAirdropRateLimitForSession,
   isAuthorizedToBypass,
 } from "@/lib/utils";
-import { rateLimitsAPI, githubValidationAPI } from "@/lib/backend";
+import { githubValidationAPI, transactionsAPI } from "@/lib/backend";
 import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic"; // defaults to auto
@@ -142,57 +141,21 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
 
       // attempt to rate limit a request (for non-whitelisted ip's)
       if (!IP_ALLOW_LIST?.includes(ip)) {
-        let ipAddressWithoutDots;
-
-        if (ip.includes(":")) {
-          // IPv6 address
-          ipAddressWithoutDots = ip.replace(/:/g, "");
-        } else {
-          // IPv4 address
-          ipAddressWithoutDots = ip.replace(/\./g, "");
-        }
-
-        rateLimitsAPI.addCombination(
-          ipAddressWithoutDots,
-          userWallet.toBase58(),
-          session?.user?.githubUserId,
-        );
+        const ipAddressWithoutDots = getCleanIp(ip);
         try {
-          // perform all database rate limit checks at the same time
-          // if one throws an error, the requestor is rate limited
-          const [githubLimitResult, ipLimitResult, walletLimitResult] =
-            await Promise.all([
-              // Check for rate limits on the requestor's Github account
-              GITHUB_LOGIN_REQUIRED
-                ? getOrCreateAndVerifyDatabaseEntry(
-                    session!.user!.githubUserId!,
-                    rateLimit,
-                  )
-                : Promise.resolve(),
+          // Fetch last transaction for any of the three identifiers
+          const lastTransaction = await transactionsAPI.getLastTransaction(userWallet.toBase58(), session?.user?.githubUserId!, ipAddressWithoutDots);
 
-              // Check for rate limits on the requestor's IP address
-              getOrCreateAndVerifyDatabaseEntry(
-                ipAddressWithoutDots,
-                rateLimit,
-              ),
-
-              // Check for rate limits on the requestor's wallet address
-              getOrCreateAndVerifyDatabaseEntry(
-                userWallet.toBase58(),
-                rateLimit,
-              ),
-            ]);
-
-          console.log("session:", session);
+          // Check if the request exceeds rate limits
+          const isWithinRateLimit = checkRateLimit(lastTransaction, rateLimit);
 
           console.log(
-            `network: ${network} requested: ${amount} ipAddressWithoutDots: ${ipAddressWithoutDots} isWithinWalletLimit: ${walletLimitResult} isWithinIpLimit: ${ipLimitResult} wallet: ${walletAddress} github: ${session!
-              .user!
-              .githubUserId!} isWithinGithubLimit: ${githubLimitResult} githubName: ${session!
-              .user!.name!} githubCreatedAt: ${session!.user!.createdAt}`,
+            `network: ${network}, requested: ${amount}, ip: ${ipAddressWithoutDots}, ` +
+            `wallet: ${walletAddress}, github: ${session?.user?.githubUserId}, ` +
+            `isWithinRateLimit: ${isWithinRateLimit}`
           );
 
-          if (!githubLimitResult || !walletLimitResult || !ipLimitResult) {
+          if (!isWithinRateLimit) {
             throw Error(
               `You have exceeded the ${rateLimit.allowedRequests} airdrops limit ` +
                 `in the past ${rateLimit.coveredHours} hour(s)`,
@@ -247,6 +210,19 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
         throw Error("Transaction failed");
       }
 
+      try {
+        await transactionsAPI.create(
+          signature,
+          getCleanIp(ip),
+          userWallet.toBase58(),
+          session?.user?.githubUserId ?? "",
+          Date.now()
+        );
+        console.log(`Transaction recorded: ${signature}`);
+      } catch (error) {
+        console.error("Failed to record transaction in database:", error);
+      }
+
       // finally return a success 200 message when the transaction was successful
       return new Response(
         JSON.stringify({
@@ -284,41 +260,14 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
   }
 });
 
-const getOrCreateAndVerifyDatabaseEntry = async (
-  key: string,
-  rateLimit: AirdropRateLimit,
-) => {
+const checkRateLimit = (lastTransaction: FaucetTransaction, rateLimit: AirdropRateLimit) => {
+  if (!lastTransaction) return true; // No previous transaction → allow request
+
   const timeAgo = Date.now() - rateLimit.coveredHours * (60 * 60 * 1000);
 
-  // Fetch the rate limit entry
-  const rateLimitEntry = await rateLimitsAPI.getByKey(key);
-
-  if (rateLimitEntry && rateLimitEntry.key !== undefined) {
-    const timestamps = rateLimitEntry.timestamps || [];
-
-    const isExcessiveUsage =
-      timestamps.filter((timestamp: number) => timestamp > timeAgo).length >=
-      rateLimit.allowedRequests;
-
-    if (isExcessiveUsage) {
-      return false;
-    }
-
-    timestamps.push(Date.now());
-
-    // update the requestor's info to track perform future rate limit checks
-    await rateLimitsAPI.update(key, timestamps).catch(err => {
-      console.error("[DB ERROR]", err);
-      throw Error("Rate limit error occurred");
-    });
-  } else {
-    // when no current `entry` exists, we will record the new requestor in the database
-    await rateLimitsAPI.create(key, [Date.now()]).catch(err => {
-      console.error("[DB ERROR]", err);
-      throw Error("Rate limit error occurred");
-    });
-  }
-
-  // when here, we are sure the user has not been rate limited
-  return true;
+  return lastTransaction.timestamp < timeAgo; // Allow if the last transaction is older than the rate limit
 };
+
+const getCleanIp = (ip: string) => {
+  return ip.includes(":") ? ip.replace(/:/g, "") : ip.replace(/\./g, "");
+}

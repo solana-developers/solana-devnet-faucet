@@ -111,6 +111,28 @@ const rateLimitsAPI = {
   }
 };
 
+const transactionsAPI = {
+  create: async (signature: string, ip_address: string, wallet_address: string, github_username: string, timestamp: number) => {
+    return fetchRequest(`${BASE_URL}/transactions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ signature, ip_address, wallet_address, github_username, timestamp }),
+    });
+  },
+  getLastTransaction: async (wallet_address: string, github_username:string, ip_address:string) => {
+    const queryParams = new URLSearchParams();
+    if (wallet_address) queryParams.append('wallet_address', wallet_address);
+    if (github_username) queryParams.append('github_username', github_username);
+    if (ip_address) queryParams.append('ip_address', ip_address);
+
+    return fetchRequest(`${BASE_URL}/transactions/last?${queryParams.toString()}`, {
+      method: 'GET',
+    });
+  },
+};
+
 // Github Validation API
 const githubValidationAPI = {
   ghValidation: async (userId: string) => {
@@ -124,7 +146,7 @@ const githubValidationAPI = {
 };
 
 // Export the API objects
-export { solanaBalancesAPI, rateLimitsAPI, githubValidationAPI };
+export { solanaBalancesAPI, rateLimitsAPI, transactionsAPI, githubValidationAPI };
 
 
 

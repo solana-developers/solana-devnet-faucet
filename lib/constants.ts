@@ -51,3 +51,19 @@ export const AIRDROP_LIMITS: {
     maxAmountPerRequest: 5,
   },
 };
+
+/**
+ * Represents a record in the `faucet.transactions` table.
+ */
+export type FaucetTransaction = {
+  /** Unique signature of the Solana transaction */
+  signature: string;
+  /** Requestor's IP address */
+  ip_address: string;
+  /** Requestor's wallet address */
+  wallet_address: string;
+  /** Requestor's GitHub userId (may become optional) */
+  github_username?: string;
+  /** Timestamp of the transaction */
+  timestamp: number;
+};
