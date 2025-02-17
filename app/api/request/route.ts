@@ -144,15 +144,20 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
         const ipAddressWithoutDots = getCleanIp(ip);
         try {
           // Fetch last transaction for any of the three identifiers
-          const lastTransactions = await transactionsAPI.getLastTransactions(userWallet.toBase58(), session?.user?.githubUserId!, ipAddressWithoutDots, rateLimit.allowedRequests);
+          const lastTransactions = await transactionsAPI.getLastTransactions(
+            userWallet.toBase58(),
+            session?.user?.githubUserId!,
+            ipAddressWithoutDots,
+            rateLimit.allowedRequests,
+          );
 
           // Check if the request exceeds rate limits
           const isWithinRateLimit = checkRateLimit(lastTransactions, rateLimit);
 
           console.log(
             `network: ${network}, requested: ${amount}, ip: ${ipAddressWithoutDots}, ` +
-            `wallet: ${walletAddress}, github: ${session?.user?.githubUserId}, ` +
-            `isWithinRateLimit: ${isWithinRateLimit}`
+              `wallet: ${walletAddress}, github: ${session?.user?.githubUserId}, ` +
+              `isWithinRateLimit: ${isWithinRateLimit}`,
           );
 
           if (!isWithinRateLimit) {
@@ -216,7 +221,7 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
           getCleanIp(ip),
           userWallet.toBase58(),
           session?.user?.githubUserId ?? "",
-          Date.now()
+          Date.now(),
         );
         console.log(`Transaction recorded: ${signature}`);
       } catch (error) {
@@ -260,19 +265,24 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
   }
 });
 
-const checkRateLimit = (lastTransactions: FaucetTransaction[], rateLimit: AirdropRateLimit) => {
+const checkRateLimit = (
+  lastTransactions: FaucetTransaction[],
+  rateLimit: AirdropRateLimit,
+) => {
   if (lastTransactions.length === 0) return true; // No previous transactions → allow request
 
-  const rateLimitThreshold = Date.now() - rateLimit.coveredHours * (60 * 60 * 1000);
+  const rateLimitThreshold =
+    Date.now() - rateLimit.coveredHours * (60 * 60 * 1000);
 
-  for(const transaction of lastTransactions) {
-    if (transaction.timestamp < rateLimitThreshold) {
-      return true; // A single transaction is within the rate limit threshold → allow request
-    }
-  }
- return false;
+  // Count how many transactions are within the rate limit window
+  const recentTransactions = lastTransactions.filter(
+    transaction => transaction.timestamp > rateLimitThreshold,
+  );
+
+  // Allow if number of recent transactions is less than allowed requests
+  return recentTransactions.length < rateLimit.allowedRequests;
 };
 
 const getCleanIp = (ip: string) => {
   return ip.includes(":") ? ip.replace(/:/g, "") : ip.replace(/\./g, "");
-}
+};
