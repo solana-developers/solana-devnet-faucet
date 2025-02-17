@@ -261,10 +261,14 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
 });
 
 const checkRateLimit = (lastTransaction: FaucetTransaction, rateLimit: AirdropRateLimit) => {
+  console.log("lastTransaction", lastTransaction);
   if (!lastTransaction) return true; // No previous transaction → allow request
+
+  console.log("timestamp", lastTransaction.timestamp);
 
   const timeAgo = Date.now() - rateLimit.coveredHours * (60 * 60 * 1000);
 
+  console.log("timeAgo", timeAgo)
   return lastTransaction.timestamp < timeAgo; // Allow if the last transaction is older than the rate limit
 };
 
