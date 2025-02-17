@@ -144,7 +144,7 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
         const ipAddressWithoutDots = getCleanIp(ip);
         try {
           // Fetch last transaction for any of the three identifiers
-          const lastTransactions = await transactionsAPI.getLastTransaction(userWallet.toBase58(), session?.user?.githubUserId!, ipAddressWithoutDots, 2);
+          const lastTransactions = await transactionsAPI.getLastTransaction(userWallet.toBase58(), session?.user?.githubUserId!, ipAddressWithoutDots, rateLimit.allowedRequests);
 
           // Check if the request exceeds rate limits
           const isWithinRateLimit = checkRateLimit(lastTransactions, rateLimit);
@@ -266,11 +266,11 @@ const checkRateLimit = (lastTransactions: FaucetTransaction[], rateLimit: Airdro
   const rateLimitThreshold = Date.now() - rateLimit.coveredHours * (60 * 60 * 1000);
 
   for(const transaction of lastTransactions) {
-    if (transaction.timestamp >= rateLimitThreshold) {
-      return false; // A transaction is within the rate limit threshold → deny request
+    if (transaction.timestamp < rateLimitThreshold) {
+      return true; // A single transaction is within the rate limit threshold → allow request
     }
   }
- return true;
+ return false;
 };
 
 const getCleanIp = (ip: string) => {
