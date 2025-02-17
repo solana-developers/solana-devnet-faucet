@@ -121,11 +121,12 @@ const transactionsAPI = {
       body: JSON.stringify({ signature, ip_address, wallet_address, github_username, timestamp }),
     });
   },
-  getLastTransaction: async (wallet_address: string, github_username:string, ip_address:string) => {
+  getLastTransactions: async (wallet_address: string, github_username:string, ip_address:string, count: number) => {
     const queryParams = new URLSearchParams();
-    if (wallet_address) queryParams.append('wallet_address', wallet_address);
-    if (github_username) queryParams.append('github_username', github_username);
-    if (ip_address) queryParams.append('ip_address', ip_address);
+    queryParams.append('wallet_address', wallet_address);
+    queryParams.append('github_id', github_username);
+    queryParams.append('ip_address', ip_address);
+    queryParams.append('count', count.toString());
 
     return fetchRequest(`${BASE_URL}/transactions/last?${queryParams.toString()}`, {
       method: 'GET',
