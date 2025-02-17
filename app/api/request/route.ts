@@ -144,7 +144,7 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
         const ipAddressWithoutDots = getCleanIp(ip);
         try {
           // Fetch last transaction for any of the three identifiers
-          const lastTransactions = await transactionsAPI.getLastTransaction(userWallet.toBase58(), session?.user?.githubUserId!, ipAddressWithoutDots, rateLimit.allowedRequests);
+          const lastTransactions = await transactionsAPI.getLastTransactions(userWallet.toBase58(), session?.user?.githubUserId!, ipAddressWithoutDots, rateLimit.allowedRequests);
 
           // Check if the request exceeds rate limits
           const isWithinRateLimit = checkRateLimit(lastTransactions, rateLimit);
