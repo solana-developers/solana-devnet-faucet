@@ -144,10 +144,10 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
         const ipAddressWithoutDots = getCleanIp(ip);
         try {
           // Fetch last transaction for any of the three identifiers
-          const lastTransaction = await transactionsAPI.getLastTransaction(userWallet.toBase58(), session?.user?.githubUserId!, ipAddressWithoutDots);
+          const lastTransactions = await transactionsAPI.getLastTransaction(userWallet.toBase58(), session?.user?.githubUserId!, ipAddressWithoutDots, 2);
 
           // Check if the request exceeds rate limits
-          const isWithinRateLimit = checkRateLimit(lastTransaction, rateLimit);
+          const isWithinRateLimit = checkRateLimit(lastTransactions, rateLimit);
 
           console.log(
             `network: ${network}, requested: ${amount}, ip: ${ipAddressWithoutDots}, ` +
@@ -260,12 +260,17 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
   }
 });
 
-const checkRateLimit = (lastTransaction: FaucetTransaction, rateLimit: AirdropRateLimit) => {
-  if (lastTransaction.timestamp === undefined) return true; // No previous transaction → allow request
+const checkRateLimit = (lastTransactions: FaucetTransaction[], rateLimit: AirdropRateLimit) => {
+  if (lastTransactions.length === 0) return true; // No previous transactions → allow request
 
-  const timeAgo = Date.now() - rateLimit.coveredHours * (60 * 60 * 1000);
+  const rateLimitThreshold = Date.now() - rateLimit.coveredHours * (60 * 60 * 1000);
 
-  return lastTransaction.timestamp < timeAgo; // Allow if the last transaction is older than the rate limit
+  for(const transaction of lastTransactions) {
+    if (transaction.timestamp >= rateLimitThreshold) {
+      return false; // A transaction is within the rate limit threshold → deny request
+    }
+  }
+ return true;
 };
 
 const getCleanIp = (ip: string) => {
