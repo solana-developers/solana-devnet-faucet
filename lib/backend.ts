@@ -112,13 +112,13 @@ const rateLimitsAPI = {
 };
 
 const transactionsAPI = {
-  create: async (signature: string, ip_address: string, wallet_address: string, github_username: string, timestamp: number) => {
+  create: async (signature: string, ip_address: string, wallet_address: string, github_id: string, timestamp: number) => {
     return fetchRequest(`${BASE_URL}/transactions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ signature, ip_address, wallet_address, github_username, timestamp }),
+      body: JSON.stringify({ signature, ip_address, wallet_address, github_id, timestamp }),
     });
   },
   getLastTransactions: async (wallet_address: string, github_username:string, ip_address:string, count: number) => {
