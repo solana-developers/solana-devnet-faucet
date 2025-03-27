@@ -98,11 +98,6 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
 
       userWallet = new PublicKey(walletAddress);
 
-      // verify the wallet is not a PDA
-      if (!PublicKey.isOnCurve(userWallet.toBuffer())) {
-        throw Error("Address cannot be a PDA");
-      }
-
       // when here, the user provided wallet is considered valid
     } catch (err) {
       throw Error("Invalid wallet address");
