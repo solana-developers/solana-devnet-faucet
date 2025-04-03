@@ -144,7 +144,9 @@ export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
 
         toaster.toast({
           title: "Error!",
-          description: `Failed to request airdrop, error: ${err instanceof Error ? err.message : err}`,
+          description: `Failed to request airdrop, error: ${
+            err instanceof Error ? err.message : err
+          }`,
         });
       }
 
@@ -213,8 +215,7 @@ export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
                 value={network}
                 onChange={handleDropdownChange}
                 className="w-min"
-                disabled={true}
-                // disabled={loading} Disabled for now because there is testnet sol available
+                disabled={loading}
               >
                 <option value="devnet">devnet</option>
                 <option value="testnet">testnet</option>
