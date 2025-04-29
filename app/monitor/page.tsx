@@ -36,6 +36,41 @@ export default function Home() {
     return Array.from(keys);
   }, [chartData]);
 
+  function getMinMaxForKey(data: ChartData[], key: string): [number, number] {
+    let min = Infinity;
+    let max = -Infinity;
+    data.forEach(row => {
+      const val = Number(row[key]);
+      if (!isNaN(val)) {
+        min = Math.min(min, val);
+        max = Math.max(max, val);
+      }
+    });
+    if (!isFinite(min) || !isFinite(max)) return [0, 1];
+    if (min === max) {
+      // All values are the same, add a small range around the value
+      return [min - 10, max + 10];
+    }
+    const padding = Math.max((max - min) * 0.1, 1000);
+    return [
+      Number((min - padding).toFixed(0)),
+      Number((max + padding).toFixed(0)),
+    ];
+  }
+
+  const [minY0, maxY0] = useMemo(
+    () => getMinMaxForKey(chartData, allKeys[0] as string),
+    [chartData, allKeys],
+  );
+  const [minY1, maxY1] = useMemo(
+    () => getMinMaxForKey(chartData, allKeys[1] as string),
+    [chartData, allKeys],
+  );
+  const [minY2, maxY2] = useMemo(
+    () => getMinMaxForKey(chartData, allKeys[2] as string),
+    [chartData, allKeys],
+  );
+
   useEffect(
     () => {
       const fetchBalances = async () => {
@@ -78,7 +113,7 @@ export default function Home() {
         margin={{
           top: 5,
           right: 30,
-          left: 20,
+          left: 100,
           bottom: 5,
         }}
       >
@@ -86,7 +121,7 @@ export default function Home() {
         <XAxis dataKey="name" />
         <YAxis
           label={{ value: "Balance", angle: -90, position: "insideLeft" }}
-          domain={[0, "dataMax + 50000"]}
+          domain={[minY2, maxY2]}
         />
 
         <Tooltip />
@@ -114,13 +149,13 @@ export default function Home() {
         margin={{
           top: 5,
           right: 30,
-          left: 20,
+          left: 100,
           bottom: 5,
         }}
       >
         <CartesianGrid strokeDasharray="3 3" stroke="blue" />
         <XAxis dataKey="name" />
-        <YAxis domain={[0, "dataMax + 50000"]} />
+        <YAxis domain={[minY1, maxY1]} />
         <Tooltip />
         <Legend />
         <Curve />
@@ -147,13 +182,13 @@ export default function Home() {
         margin={{
           top: 5,
           right: 30,
-          left: 20,
+          left: 100,
           bottom: 5,
         }}
       >
         <CartesianGrid strokeDasharray="3 3" stroke="blue" />
         <XAxis dataKey="name" />
-        <YAxis domain={[0, "dataMax + 50000"]} />
+        <YAxis domain={[minY0, maxY0]} />
         <Tooltip />
         <Legend />
         <Curve />
