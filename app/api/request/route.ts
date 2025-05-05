@@ -23,7 +23,7 @@ import {
   getAirdropRateLimitForSession,
   isAuthorizedToBypass,
 } from "@/lib/utils";
-import { githubValidationAPI, transactionsAPI } from "@/lib/backend";
+import { githubValidationAPI, transactionsAPI, validationAPI } from "@/lib/backend";
 import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic"; // defaults to auto
@@ -80,12 +80,6 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
           "GitHub authentication is required. Please sign in with GitHub to use the faucet.",
         );
       }
-      const { valid } = await githubValidationAPI.ghValidation(
-        session.user.githubUserId!,
-      );
-      if (!valid) {
-        throw Error("Github account too new");
-      }
     }
 
     // get the desired rate limit for the current requestor
@@ -138,6 +132,14 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
       if (!IP_ALLOW_LIST?.includes(ip)) {
         const ipAddressWithoutDots = getCleanIp(ip);
         try {
+          const { valid, reason } = await validationAPI.validate(
+            ipAddressWithoutDots,
+            userWallet.toBase58(),
+            session!.user.githubUserId!);
+          if (!valid) {
+            throw Error(reason);
+          }
+
           // Fetch last transaction for any of the three identifiers
           const lastTransactions = await transactionsAPI.getLastTransactions(
             userWallet.toBase58(),
@@ -151,14 +153,14 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
 
           console.log(
             `network: ${network}, requested: ${amount}, ip: ${ipAddressWithoutDots}, ` +
-              `wallet: ${walletAddress}, github: ${session?.user?.githubUserId}, ` +
-              `isWithinRateLimit: ${isWithinRateLimit}`,
+            `wallet: ${walletAddress}, github: ${session?.user?.githubUserId}, ` +
+            `isWithinRateLimit: ${isWithinRateLimit}`,
           );
 
           if (!isWithinRateLimit) {
             throw Error(
               `You have exceeded the ${rateLimit.allowedRequests} airdrops limit ` +
-                `in the past ${rateLimit.coveredHours} hour(s)`,
+              `in the past ${rateLimit.coveredHours} hour(s)`,
             );
           }
 

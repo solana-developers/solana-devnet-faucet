@@ -21,7 +21,7 @@ const getAccessToken = async (): Promise<string> => {
   const tokenResponse = await client.getAccessToken();
   return tokenResponse.token as string;
 };
-const handleResponse = async (response: Response) => {
+const handleResponse = async (response: Response) =>  {
   if (response.status === 404 || response.status === 204) {
     return {};
   }
@@ -75,42 +75,6 @@ const solanaBalancesAPI = {
   },
 };
 
-// Rate Limits API
-const rateLimitsAPI = {
-  create: async (key: string, timestamps: number[]) => {
-    return fetchRequest(`${BASE_URL}/rate-limits`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ key, timestamps }),
-    });
-  },
-  getByKey: async (key: string) => {
-    return fetchRequest(`${BASE_URL}/rate-limits/${key}`, {
-      method: 'GET',
-    });
-  },
-  update: async (key: string, timestamps: number[]) => {
-    return fetchRequest(`${BASE_URL}/rate-limits/${key}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ timestamps }),
-    });
-  },
-  addCombination: async (ip_address: string, wallet_address: string, github_userid?: string) => {
-    return fetchRequest(`${BASE_URL}/rate-limits-combo`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ip_address, wallet_address, github_userid})
-    });
-  }
-};
-
 const transactionsAPI = {
   create: async (signature: string, ip_address: string, wallet_address: string, github_id: string, timestamp: number) => {
     return fetchRequest(`${BASE_URL}/transactions`, {
@@ -134,6 +98,22 @@ const transactionsAPI = {
   },
 };
 
+const validationAPI = {
+  validate: async (ip_address: string, wallet_address: string, github_id: string) => {
+    return fetchRequest(`${BASE_URL}/validate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ip_address,
+        wallet_address,
+        github_id,
+      }),
+    });
+  }
+};
+
 // Github Validation API
 const githubValidationAPI = {
   ghValidation: async (userId: string) => {
@@ -147,7 +127,7 @@ const githubValidationAPI = {
 };
 
 // Export the API objects
-export { solanaBalancesAPI, rateLimitsAPI, transactionsAPI, githubValidationAPI };
+export { solanaBalancesAPI, transactionsAPI, githubValidationAPI, validationAPI };
 
 
 
