@@ -1,9 +1,33 @@
+@font-face {
+  font-family: 'DesuzaPro';
+  src: url('/fonts/DesuzaPro.woff2') format('woff2'),
+       url('/fonts/DesuzaPro.woff') format('woff');
+  font-weight: 1000;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'DesuzaPro';
+  src: url('/fonts/DesuzaPro-Italic.woff2') format('woff2'),
+       url('/fonts/DesuzaPro-Italic.woff') format('woff');
+  font-weight: 1000;
+  font-style: italic;
+  font-display: swap;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 body {
   @apply bg-background text-foreground;
+  font-family: 'DesuzaPro', sans-serif;
+  background-image: url('/solaxybg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 /* Remove input number arrows - Webkit */

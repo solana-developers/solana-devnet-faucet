@@ -31,16 +31,24 @@ import { useToast } from "@/components/ui/use-toast";
 
 import Image from "next/image";
 import svgLoader from "@/public/svgLoader.svg";
-import { AirdropRateLimit } from "@/lib/constants";
+import { LAMPORTS_PER_SOLX } from "@/lib/constants";
 
 type AirdropFormProps = {
   className?: string;
-  rateLimit: AirdropRateLimit;
 };
 
-export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
+function formatWaitTime(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.round((seconds % 3600) / 60);
+  if (hours > 0) {
+    return `${hours} hour${hours > 1 ? "s" : ""} ${minutes} minute${minutes !== 1 ? "s" : ""}`;
+  }
+  return `${minutes} minute${minutes !== 1 ? "s" : ""}`;
+}
+
+export const AirdropForm = ({ className }: AirdropFormProps) => {
   const toaster = useToast();
-  const amountOptions = [0.5, 1, 2.5, 5];
+  const amountOptions = [0.05, 0.1, 0.15, 0.25];
   const [loading, setLoading] = useState<boolean>(false);
 
   const [walletAddress, setWalletAddress] = useState<string>("");
@@ -50,12 +58,7 @@ export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
     amount: "",
   });
   const [showVerifyDialog, setShowVerifyDialog] = useState<boolean>(false);
-  const [network, setSelectedNetwork] = useState("devnet");
   const [isFormValid, setIsFormValid] = useState(false);
-
-  if (rateLimit.maxAmountPerRequest > 5) {
-    amountOptions.push(rateLimit.maxAmountPerRequest);
-  }
 
   const validateWallet = (address: string): boolean => {
     try {
@@ -87,10 +90,6 @@ export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
     }
   };
 
-  const handleDropdownChange = (event: any) => {
-    setSelectedNetwork(event.target.value);
-  };
-
   const requestAirdrop = useCallback(
     async (cloudflareCallback: string | null = null) => {
       try {
@@ -112,10 +111,9 @@ export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            amount,
+            amount: amount !== null ? Math.round(amount * LAMPORTS_PER_SOLX) : null,
             walletAddress,
             cloudflareCallback,
-            network,
           }),
         })
           .then(async res => {
@@ -131,8 +129,18 @@ export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
 
             let errorMessage = "Airdrop request failed";
 
-            if (typeof err == "string") errorMessage = err;
-            else if (err instanceof Error) errorMessage = err.message;
+            if (typeof err === "string") {
+              // to extract wait time in seconds from error string
+              const match = err.match(/wait (\d+(\.\d+)?)s/i);
+              if (match) {
+                const seconds = parseFloat(match[1]);
+                errorMessage = `You need to wait ${formatWaitTime(seconds)} before your next airdrop.`;
+              } else {
+                errorMessage = err;
+              }
+            } else if (err instanceof Error) {
+              errorMessage = err.message;
+            }
 
             toaster.toast({
               title: "Error!",
@@ -152,7 +160,7 @@ export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
 
       setLoading(false);
     },
-    [toaster, network, walletAddress, amount],
+    [toaster, walletAddress, amount],
   );
 
   useEffect(() => {
@@ -173,18 +181,12 @@ export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
   }, []);
 
   useEffect(() => {
-    // console.log({
-    //   walletAddress,
-    //   amount,
-    //   errorsWallet: errors.wallet,
-    //   errorsAmount: errors.amount,
-    // });
     setIsFormValid(
       walletAddress !== "" &&
         amount !== null &&
-        amount <= 10 &&
+        amount <= 0.25 &&
         errors.wallet === "" &&
-        errors.amount === "",
+        errors.amount === ""
     );
   }, [errors.amount, errors.wallet, amount, walletAddress]);
 
@@ -209,24 +211,12 @@ export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
         <CardHeader>
           <CardTitle>
             <div className="flex items-center justify-between gap-3">
-              <span>Request Airdrop</span>
-
-              <select
-                value={network}
-                onChange={handleDropdownChange}
-                className="w-min"
-                disabled={loading}
-              >
-                <option value="devnet">devnet</option>
-                <option value="testnet">testnet</option>
-              </select>
+              <span>Request Tokens</span>
+              <span className="uppercase text-xs font-bold text-gray-400">Devnet</span>
             </div>
           </CardTitle>
           <CardDescription>
-            Maximum of {rateLimit.allowedRequests} requests{" "}
-            {rateLimit.coveredHours == 1
-              ? "per hour"
-              : `every ${rateLimit.coveredHours} hours`}
+            Maximum of 0.25 SOLX per request <br />[every 6 hours]
           </CardDescription>
         </CardHeader>
 
@@ -248,7 +238,7 @@ export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
                 variant="outline"
                 disabled={loading}
               >
-                {!!amount ? amount + " SOL" : "Amount"}
+                {!!amount ? amount + " SOLX" : "Amount"}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="grid w-32 grid-cols-2 gap-2">

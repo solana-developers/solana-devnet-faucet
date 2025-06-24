@@ -1,9 +1,10 @@
 /**
  * General constants used for the website
  */
+
 export const SITE = {
-  domain: "faucet.solana.com",
-  url: "https://faucet.solana.com",
+  domain: "faucet.solaxy.io",
+  url: "https://faucet.solaxy.io",
 };
 
 /**
@@ -67,3 +68,10 @@ export type FaucetTransaction = {
   /** Timestamp of the transaction */
   timestamp: number;
 };
+
+// Environment variables
+// Centralized here for consistent usage across the codebase
+export const devnetFaucetURL = process.env.NEXT_PUBLIC_RPC_URL;
+
+// Number of lamports per SOLX token (Solana convention: 1 SOLX = 1,000,000 lamports)
+export const LAMPORTS_PER_SOLX = 1_000_000;

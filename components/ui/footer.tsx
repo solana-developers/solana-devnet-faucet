@@ -4,13 +4,12 @@ export function Footer() {
   return (
     <div className="p-8 space-y-1">
       <p className="text-sm text-center text-white/50">
-        This tool is designed for development purposes and does not distribute
-        mainnet SOL.
+        This faucet is for Solaxy Devnet only and does not distribute mainnet tokens.
       </p>
       <p className="text-sm text-center text-white/50">
-        Operated by the{" "}
-        <Link href="https://solana.org" target="_blank" className="underline">
-          Solana Foundation
+        Operated by{" "}
+        <Link href="https://solaxy.io" target="_blank" className="underline">
+          Solaxy
         </Link>
         .
       </p>
