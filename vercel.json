@@ -1,5 +1,8 @@
 {
   "github": {
     "silent": true
+  },
+  "functions": {
+    "runtime": "nodejs22.x"
   }
 }
