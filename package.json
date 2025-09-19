@@ -43,8 +43,5 @@
   },
   "devDependencies": {
     "@types/pg": "^8.10.2"
-  },
-  "engines": {
-    "node": ">=22 <23"
   }
 }
