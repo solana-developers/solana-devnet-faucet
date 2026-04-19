@@ -57,7 +57,7 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
 
     let serverKeypair: Keypair;
     try {
-      serverKeypair = await getKeypairFromEnvironment("FAUCET_KEYPAIR");
+      serverKeypair = await getKeypairFromEnvironment("FAUCET_KEYPAIR_NEW");
     } catch (err) {
       throw Error("Internal error. No faucet keypair found");
     }

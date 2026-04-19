@@ -23,7 +23,7 @@ declare namespace NodeJS {
      * General variables and settings
      */
     RPC_URL: string;
-    FAUCET_KEYPAIR: string;
+    FAUCET_KEYPAIR_NEW: string;
     // NEXT_PUBLIC_RPC_URL: string;
 
     POSTGRES_STRING: string;

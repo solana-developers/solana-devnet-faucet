@@ -17,7 +17,7 @@ export const GET = async (_req: Request) => {
     const FAUCET_ACCOUNTS = [
       "6yvwhesLJeE8fNWviosRoUtBP3VFUXE7SEhSP9fFRJ3Z",
       "2pekXzx7WRPtdj4Gvtif1mzmHfc21zpNx2AvW9r4g7bo",
-      "devwuNsNYACyiEYxRNqMNseBpNnGfnd4ZwNHL7sphqv",
+      "dev2JBjyB5CshoGsiJCwzdmJYiEUwAXMdqDR7txoFBJ",
     ].map(acc => new PublicKey(acc));
 
     // Fetch and store the balances
