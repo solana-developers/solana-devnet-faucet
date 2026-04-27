@@ -23,7 +23,7 @@ import {
   getAirdropRateLimitForSession,
   isAuthorizedToBypass,
 } from "@/lib/utils";
-import { githubValidationAPI, transactionsAPI, validationAPI } from "@/lib/backend";
+import { transactionsAPI, validationAPI } from "@/lib/backend";
 import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic"; // defaults to auto
@@ -47,8 +47,6 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
       headersList.get("cf-connecting-ip") ||
       (process.env.NODE_ENV === "development" ? "::1" : null);
 
-    console.log("ip: %s, headersList: %o", ip, headersList);
-
     if (!ip) {
       return new Response("Could not determine client IP address", {
         status: 400,
@@ -67,7 +65,10 @@ export const POST = withOptionalUserSession(async ({ req, session }) => {
       .at(1)
       ?.trim();
 
-    console.log("authToken:", authToken);
+    console.log("airdrop request received", {
+      ip,
+      authBypassRequested: !!authToken,
+    });
 
     // get the required data submitted from the client
     const { walletAddress, amount, network, cloudflareCallback } =
