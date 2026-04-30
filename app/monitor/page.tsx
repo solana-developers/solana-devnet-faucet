@@ -10,31 +10,16 @@ import {
   Legend,
   Curve,
 } from "recharts";
-
-interface Balance {
-  account: string;
-  balance: number;
-  date: string;
-}
-
-interface ChartData {
-  name: string;
-  [key: string]: number | string;
-}
+import { FAUCET_ACCOUNTS } from "@/lib/constants";
+import { buildChartData, type Balance, type ChartData } from "@/lib/monitor";
 
 export default function Home() {
   const [chartData, setChartData] = useState<ChartData[]>([]);
 
-  // TODO: this needs a proper return type set
-  const allKeys = useMemo(() => {
-    const keys = chartData.reduce((acc, cur) => {
-      Object.keys(cur).forEach(key => acc.add(key));
-      return acc;
-    }, new Set());
-
-    keys.delete("name");
-    return Array.from(keys);
-  }, [chartData]);
+  // Stable, semantic order: index → chart label is fixed in JSX below.
+  // Filtering chartData to FAUCET_ACCOUNTS keeps retired keys (e.g. previous
+  // web faucet) from leaking through the backend's 1-month "recent" window.
+  const allKeys = FAUCET_ACCOUNTS;
 
   function getMinMaxForKey(data: ChartData[], key: string): [number, number] {
     let min = Infinity;
@@ -78,19 +63,9 @@ export default function Home() {
         const data = await res.json();
         const results = data.results as Balance[];
 
-        const dataMap: { [key: string]: ChartData } = {};
-
         console.log("results", results);
 
-        results.forEach(r => {
-          if (!dataMap[r.date]) {
-            dataMap[r.date] = { name: new Date(r.date).toLocaleDateString() };
-          }
-
-          dataMap[r.date][r.account] = r.balance;
-        });
-
-        const dataArray = Object.values(dataMap);
+        const dataArray = buildChartData(results);
 
         setChartData(dataArray);
         console.log(dataArray, "DATA ARRAY");

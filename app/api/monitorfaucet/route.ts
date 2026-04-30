@@ -1,5 +1,6 @@
 import { LAMPORTS_PER_SOL, PublicKey, Connection } from "@solana/web3.js";
 import { solanaBalancesAPI } from "@/lib/backend";
+import { FAUCET_ACCOUNTS } from "@/lib/constants";
 
 export const dynamic = "force-dynamic"; // defaults to auto
 
@@ -13,15 +14,10 @@ export const GET = async (_req: Request) => {
       process.env.RPC_URL ?? "https://api.devnet.solana.com",
     );
 
-    // define the list of faucet accounts to monitor
-    const FAUCET_ACCOUNTS = [
-      "6yvwhesLJeE8fNWviosRoUtBP3VFUXE7SEhSP9fFRJ3Z",
-      "2pekXzx7WRPtdj4Gvtif1mzmHfc21zpNx2AvW9r4g7bo",
-      "dev2JBjyB5CshoGsiJCwzdmJYiEUwAXMdqDR7txoFBJ",
-    ].map(acc => new PublicKey(acc));
+    const accounts = FAUCET_ACCOUNTS.map(acc => new PublicKey(acc));
 
     // Fetch and store the balances
-    for (let account of FAUCET_ACCOUNTS) {
+    for (let account of accounts) {
       const fetchedBalance = await connection.getBalance(account);
 
       const balance = fetchedBalance / LAMPORTS_PER_SOL;

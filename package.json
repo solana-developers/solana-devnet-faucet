@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "1.0.4",
@@ -42,6 +44,7 @@
     "typescript": "5.1.6"
   },
   "devDependencies": {
-    "@types/pg": "^8.10.2"
+    "@types/pg": "^8.10.2",
+    "vitest": "^4.1.5"
   }
 }
