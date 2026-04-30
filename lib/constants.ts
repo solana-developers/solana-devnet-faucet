@@ -11,7 +11,8 @@ export const SITE = {
  *
  * Order matters: the /monitor page renders one chart per entry
  * (POW Faucet 2, POW Faucet 1, Web Faucet — see app/monitor/page.tsx).
- * Update both this list and FAUCET_KEYPAIR_NEW when rotating the web key.
+ * When rotating the web faucet key, update both this list and the
+ * corresponding web faucet keypair configuration.
  */
 export const FAUCET_ACCOUNTS = [
   "6yvwhesLJeE8fNWviosRoUtBP3VFUXE7SEhSP9fFRJ3Z",
