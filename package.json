@@ -26,7 +26,7 @@
     "fs": "^0.0.1-security",
     "google-auth-library": "^9.14.2",
     "lucide-react": "^0.263.1",
-    "next": "^14.0.0",
+    "next": "14.2.35",
     "next-auth": "^4.24.5",
     "path": "^0.12.7",
     "pg": "^8.11.1",
