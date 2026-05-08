@@ -2,14 +2,11 @@
   "name": "my-app",
   "version": "0.1.0",
   "private": true,
-  "engines": {
-    "node": ">=22"
-  },
   "scripts": {
-    "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "dev": "next dev",
     "lint": "next lint",
+    "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest"
   },
@@ -49,5 +46,10 @@
   "devDependencies": {
     "@types/pg": "^8.10.2",
     "vitest": "^4.1.5"
+  },
+  "packageManager": "npm@11.13.0",
+  "engines": {
+    "node": ">=22",
+    "npm": ">=11.6"
   }
 }

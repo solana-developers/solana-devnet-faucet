@@ -10,11 +10,14 @@ jobs:
     name: Install & Lint
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           cache: npm
+      - run: corepack enable npm
       - run: npm ci
       - run: npm run lint
