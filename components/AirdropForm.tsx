@@ -170,7 +170,7 @@ export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
         setAmount(amountValue);
       }
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- mount-only URL hydration; re-running on validator identity changes would clobber user input
 
   useEffect(() => {
     // console.log({
