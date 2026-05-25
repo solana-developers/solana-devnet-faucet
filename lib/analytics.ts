@@ -10,6 +10,8 @@
  *   GA4_API_SECRET      – created in GA4 Admin › Data Streams › Measurement Protocol API secrets
  */
 
+import { waitUntil } from "@vercel/functions";
+
 const GA4_ENDPOINT = "https://www.google-analytics.com/mp/collect";
 
 type EventParams = Record<string, string | number | boolean | undefined>;
@@ -41,14 +43,16 @@ export function trackEvent(
     if (v !== undefined) cleanParams[k] = v;
   }
 
-  fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      client_id: clientId,
-      events: [{ name, params: cleanParams }],
+  waitUntil(
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        client_id: clientId,
+        events: [{ name, params: cleanParams }],
+      }),
+    }).catch((err) => {
+      console.error(`[ANALYTICS] Failed to send event "${name}":`, err);
     }),
-  }).catch((err) => {
-    console.error(`[ANALYTICS] Failed to send event "${name}":`, err);
-  });
+  );
 }

@@ -21,6 +21,7 @@
     "@types/react": "18.2.14",
     "@types/react-dom": "18.2.6",
     "@vercel/edge-config": "^0.2.1",
+    "@vercel/functions": "^3.6.0",
     "autoprefixer": "10.4.14",
     "class-variance-authority": "^0.7.0",
     "eslint": "8.44.0",
