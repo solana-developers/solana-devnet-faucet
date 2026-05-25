@@ -3,7 +3,7 @@ import { GradientBlob } from "@/components/GradientBlob";
 import { AirdropForm } from "@/components/AirdropForm";
 import { GitHubConnectForm } from "@/components/GitHubConnectForm";
 import { getUserSession } from "@/lib/auth";
-import { getAirdropRateLimitForSession } from "@/lib/utils";
+import { getTierForSession } from "@/lib/airdrop/server";
 
 /**
  * Set the custom metadata for this specific page
@@ -16,12 +16,12 @@ export const metadata: Metadata = {
 
 export default async function Page() {
   const session = await getUserSession();
-  const rateLimit = await getAirdropRateLimitForSession(session);
+  const tier = await getTierForSession(session);
 
   return (
     <main className="items-center justify-center w-full space-y-8 md:py-20">
       <AirdropForm
-        rateLimit={rateLimit}
+        tier={tier}
         className="items-center justify-center w-full md:flex"
       />
 

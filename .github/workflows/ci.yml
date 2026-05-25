@@ -7,7 +7,7 @@ on:
 
 jobs:
   lint:
-    name: Install & Lint
+    name: Install, Lint & Test
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -21,3 +21,4 @@ jobs:
       - run: corepack enable npm
       - run: npm ci
       - run: npm run lint
+      - run: npm test

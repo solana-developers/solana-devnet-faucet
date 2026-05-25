@@ -1,6 +1,7 @@
-import { LAMPORTS_PER_SOL, PublicKey, Connection } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { solanaBalancesAPI } from "@/lib/backend";
 import { FAUCET_ACCOUNTS } from "@/lib/constants";
+import { getConnection } from "@/lib/rpc";
 
 export const dynamic = "force-dynamic"; // defaults to auto
 
@@ -9,10 +10,7 @@ export const dynamic = "force-dynamic"; // defaults to auto
  */
 export const GET = async (_req: Request) => {
   try {
-    // connect to the desired solana rpc
-    const connection = new Connection(
-      process.env.RPC_URL ?? "https://api.devnet.solana.com",
-    );
+    const connection = getConnection("devnet");
 
     const accounts = FAUCET_ACCOUNTS.map(acc => new PublicKey(acc));
 

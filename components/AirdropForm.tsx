@@ -31,16 +31,17 @@ import { useToast } from "@/components/ui/use-toast";
 
 import Image from "next/image";
 import svgLoader from "@/public/svgLoader.svg";
-import { AirdropRateLimit } from "@/lib/constants";
+import { VALID_AMOUNTS, type AirdropTier } from "@/lib/airdrop";
+import type { AirdropResponse } from "@/app/api/request/types";
 
 type AirdropFormProps = {
   className?: string;
-  rateLimit: AirdropRateLimit;
+  tier: AirdropTier;
 };
 
-export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
+export const AirdropForm = ({ className, tier }: AirdropFormProps) => {
   const toaster = useToast();
-  const amountOptions = [0.5, 1, 2.5, 5];
+  const amountOptions = [...VALID_AMOUNTS];
   const [loading, setLoading] = useState<boolean>(false);
 
   const [walletAddress, setWalletAddress] = useState<string>("");
@@ -53,8 +54,8 @@ export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
   const [network, setSelectedNetwork] = useState("devnet");
   const [isFormValid, setIsFormValid] = useState(false);
 
-  if (rateLimit.maxAmountPerRequest > 5) {
-    amountOptions.push(rateLimit.maxAmountPerRequest);
+  if (tier.maxAmountPerRequest > 5) {
+    amountOptions.push(tier.maxAmountPerRequest);
   }
 
   const validateWallet = (address: string): boolean => {
@@ -64,10 +65,6 @@ export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
     } catch (error) {
       return false;
     }
-  };
-
-  const validateAmount = (value: number): boolean => {
-    return amountOptions.includes(value);
   };
 
   const handleWalletChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -93,20 +90,20 @@ export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
 
   const requestAirdrop = useCallback(
     async (cloudflareCallback: string | null = null) => {
+      if (
+        cloudflareCallback === null &&
+        process.env.NODE_ENV !== "development"
+      ) {
+        return toaster.toast({
+          title: "Error!",
+          description: "Please complete the captcha.",
+        });
+      }
+
+      setLoading(true);
+
       try {
-        if (
-          cloudflareCallback === null &&
-          process.env.NODE_ENV != "development"
-        ) {
-          return toaster.toast({
-            title: "Error!",
-            description: "Please complete the captcha.",
-          });
-        }
-
-        setLoading(true);
-
-        await fetch("/api/request", {
+        const res = await fetch("/api/request", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -117,36 +114,25 @@ export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
             cloudflareCallback,
             network,
           }),
-        })
-          .then(async res => {
-            if (res.ok) {
-              return toaster.toast({
-                title: "Success!",
-                description: "Airdrop was successful.",
-              });
-            } else throw await res.text();
-          })
-          .catch(err => {
-            console.error(err);
+        });
 
-            let errorMessage = "Airdrop request failed";
-
-            if (typeof err == "string") errorMessage = err;
-            else if (err instanceof Error) errorMessage = err.message;
-
-            toaster.toast({
-              title: "Error!",
-              description: errorMessage,
-            });
+        if (res.ok) {
+          const data: AirdropResponse = await res.json();
+          toaster.toast({
+            title: "Success!",
+            description: data.message,
           });
+        } else {
+          toaster.toast({
+            title: "Error!",
+            description: await res.text(),
+          });
+        }
       } catch (err) {
         console.error(err);
-
         toaster.toast({
           title: "Error!",
-          description: `Failed to request airdrop, error: ${
-            err instanceof Error ? err.message : err
-          }`,
+          description: "Airdrop request failed",
         });
       }
 
@@ -166,19 +152,13 @@ export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
     }
     if (amountFromUrl) {
       const amountValue = parseFloat(amountFromUrl);
-      if (validateAmount(amountValue)) {
+      if (VALID_AMOUNTS.includes(amountValue) || amountValue === tier.maxAmountPerRequest) {
         setAmount(amountValue);
       }
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- mount-only URL hydration; re-running on validator identity changes would clobber user input
 
   useEffect(() => {
-    // console.log({
-    //   walletAddress,
-    //   amount,
-    //   errorsWallet: errors.wallet,
-    //   errorsAmount: errors.amount,
-    // });
     setIsFormValid(
       walletAddress !== "" &&
         amount !== null &&
@@ -223,10 +203,10 @@ export const AirdropForm = ({ className, rateLimit }: AirdropFormProps) => {
             </div>
           </CardTitle>
           <CardDescription>
-            Maximum of {rateLimit.allowedRequests} requests{" "}
-            {rateLimit.coveredHours == 1
+            Maximum of {tier.allowedRequests} requests{" "}
+            {tier.coveredHours == 1
               ? "per hour"
-              : `every ${rateLimit.coveredHours} hours`}
+              : `every ${tier.coveredHours} hours`}
           </CardDescription>
         </CardHeader>
 

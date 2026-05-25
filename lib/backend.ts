@@ -63,11 +63,6 @@ const solanaBalancesAPI = {
       body: JSON.stringify({ account, balance }),
     });
   },
-  getAllForAccount: async (account: string) => {
-    return fetchRequest(`${BASE_URL}/solana-balances/account/${account}`, {
-      method: 'GET',
-    });
-  },
   getRecent: async () => {
     return fetchRequest(`${BASE_URL}/solana-balances/recent`, {
       method: 'GET',
@@ -76,19 +71,23 @@ const solanaBalancesAPI = {
 };
 
 const transactionsAPI = {
-  create: async (signature: string, ip_address: string, wallet_address: string, github_id: string, timestamp: number) => {
+  create: async (signature: string, ip_address: string, wallet_address: string, github_id: string | undefined, timestamp: number) => {
     return fetchRequest(`${BASE_URL}/transactions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
+      // github_id intentionally omitted from JSON when undefined: backend
+      // schema is .strict() with githubIdSchema.optional(), and `""` would
+      // fail the `^\d+$` regex. JSON.stringify drops keys whose value is
+      // undefined.
       body: JSON.stringify({ signature, ip_address, wallet_address, github_id, timestamp }),
     });
   },
-  getLastTransactions: async (wallet_address: string, github_username:string, ip_address:string, count: number) => {
+  getLastTransactions: async (wallet_address: string, github_id: string, ip_address: string, count: number) => {
     const queryParams = new URLSearchParams();
     queryParams.append('wallet_address', wallet_address);
-    queryParams.append('github_id', github_username);
+    queryParams.append('github_id', github_id);
     queryParams.append('ip_address', ip_address);
     queryParams.append('count', count.toString());
 
@@ -114,20 +113,8 @@ const validationAPI = {
   }
 };
 
-// Github Validation API
-const githubValidationAPI = {
-  ghValidation: async (userId: string) => {
-    return fetchRequest(`${BASE_URL}/gh-validation/${userId}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-  },
-};
-
 // Export the API objects
-export { solanaBalancesAPI, transactionsAPI, githubValidationAPI, validationAPI };
+export { solanaBalancesAPI, transactionsAPI, validationAPI };
 
 
 

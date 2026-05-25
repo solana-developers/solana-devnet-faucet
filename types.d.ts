@@ -22,7 +22,8 @@ declare namespace NodeJS {
     /**
      * General variables and settings
      */
-    RPC_URL: string;
+    RPC_URL_DEVNET: string;
+    RPC_URL_TESTNET: string;
     FAUCET_KEYPAIR_NEW: string;
 
     CLOUDFLARE_SECRET: string;
@@ -34,6 +35,13 @@ declare namespace NodeJS {
      */
     BE_TOKEN: string;
     BE_SERVICE_ACCOUNT_KEY: string;
+
+    /**
+     * Server-side analytics (GA4 Measurement Protocol). Optional —
+     * trackEvent() is a no-op when either is unset.
+     */
+    GA4_MEASUREMENT_ID: string;
+    GA4_API_SECRET: string;
 
     /**
      * Auth related variables
