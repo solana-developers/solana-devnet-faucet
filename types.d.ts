@@ -44,6 +44,14 @@ declare namespace NodeJS {
     GA4_API_SECRET: string;
 
     /**
+     * Client-side analytics (gtag.js). Optional — the GA4 <Script>
+     * tags in app/layout.tsx render only when this is set. Public by
+     * design (served to every visitor in the script src), so safe to
+     * expose with the NEXT_PUBLIC_ prefix.
+     */
+    NEXT_PUBLIC_GA4_MEASUREMENT_ID: string;
+
+    /**
      * Auth related variables
      */
     NEXTAUTH_SECRET: string;
