@@ -130,7 +130,7 @@ export const GitHubConnectForm = ({
               to ensure fair usage &mdash; some accounts may not pass
               verification. For other ways to get devnet SOL, check out the{" "}
               <Link
-                href="https://solana.com/de/developers/guides/getstarted/solana-token-airdrop-and-faucets"
+                href="https://solana.com/developers/guides/getstarted/solana-token-airdrop-and-faucets"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline underline-offset-2 hover:text-foreground inline-flex items-center gap-0.5"
@@ -183,7 +183,7 @@ export const GitHubConnectForm = ({
           <p>
             For a full list of options, see the{" "}
             <Link
-              href="https://solana.com/de/developers/guides/getstarted/solana-token-airdrop-and-faucets"
+              href="https://solana.com/developers/guides/getstarted/solana-token-airdrop-and-faucets"
               target="_blank"
               rel="noopener noreferrer"
               className="underline underline-offset-2 hover:text-foreground inline-flex items-center gap-0.5"
