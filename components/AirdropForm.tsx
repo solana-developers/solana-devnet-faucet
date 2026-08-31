@@ -33,6 +33,7 @@ import Image from "next/image";
 import svgLoader from "@/public/svgLoader.svg";
 import { VALID_AMOUNTS, type AirdropTier } from "@/lib/airdrop";
 import type { AirdropResponse } from "@/app/api/request/types";
+import { isNetwork } from "@/lib/rpc";
 
 type AirdropFormProps = {
   className?: string;
@@ -142,10 +143,11 @@ export const AirdropForm = ({ className, tier }: AirdropFormProps) => {
   );
 
   useEffect(() => {
-    // Extract the walletAddress and amount from the URL and pre set it
+    // Extract the walletAddress, amount, and cluster from the URL and pre-set them.
     const urlParams = new URLSearchParams(window.location.search);
     const addressFromUrl = urlParams.get("walletAddress");
     const amountFromUrl = urlParams.get("amount");
+    const clusterFromUrl = urlParams.get("cluster");
 
     if (addressFromUrl && validateWallet(addressFromUrl)) {
       setWalletAddress(addressFromUrl);
@@ -155,6 +157,9 @@ export const AirdropForm = ({ className, tier }: AirdropFormProps) => {
       if (VALID_AMOUNTS.includes(amountValue) || amountValue === tier.maxAmountPerRequest) {
         setAmount(amountValue);
       }
+    }
+    if (clusterFromUrl && isNetwork(clusterFromUrl)) {
+      setSelectedNetwork(clusterFromUrl);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps -- mount-only URL hydration; re-running on validator identity changes would clobber user input
 
