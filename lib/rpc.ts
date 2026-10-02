@@ -9,7 +9,7 @@ export type Network = keyof typeof RPC_URLS;
 export const VALID_NETWORKS = Object.keys(RPC_URLS) as Network[];
 
 export function isNetwork(value: unknown): value is Network {
-  return typeof value === "string" && value in RPC_URLS;
+  return typeof value === "string" && VALID_NETWORKS.includes(value as Network);
 }
 
 export function getRpcUrl(network: Network): string {
