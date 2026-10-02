@@ -23,6 +23,12 @@ describe("isNetwork", () => {
   it("should return false for empty string", () => {
     expect(isNetwork("")).toBe(false);
   });
+
+  it("should return false for inherited object properties", () => {
+    expect(isNetwork("toString")).toBe(false);
+    expect(isNetwork("constructor")).toBe(false);
+    expect(isNetwork("__proto__")).toBe(false);
+  });
 });
 
 describe("VALID_NETWORKS", () => {
